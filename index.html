@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Corre, Flávio!</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;height:100%;background:#1a1a2e;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+  #wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+  canvas{image-rendering:pixelated;image-rendering:crisp-edges;max-width:100vw;max-height:100vh;aspect-ratio:16/9;width:100vw;height:auto}
+  #touch{position:fixed;left:0;right:0;bottom:12px;display:none;justify-content:space-between;padding:0 16px;pointer-events:none}
+  #touch div{display:flex;gap:12px}
+  #touch button{pointer-events:auto;width:64px;height:64px;border-radius:12px;border:3px solid #fff8;background:#0006;color:#fff;font:16px 'Press Start 2P',monospace}
+  @media (pointer:coarse){#touch{display:flex}}
+  #mus{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);padding:8px 12px;border-radius:8px;border:2px solid #fff8;background:#0008;color:#fff;font:10px 'Press Start 2P',monospace;cursor:pointer}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="c" width="384" height="216"></canvas></div>
+<button id="mus">♪ MÚSICA: ON</button>
+<div id="touch">
+  <div><button data-k="left">◀</button><button data-k="right">▶</button></div>
+  <div><button data-k="jump">▲</button></div>
+</div>
+<script>
+const W = 384, H = 216, LEVEL = 4000, GROUND = 184;
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+const FONT = "8px 'Press Start 2P', monospace";
+
+// ---------- sprites ----------
+function sprite(rows, pal) {
+  const c = document.createElement('canvas');
+  c.width = rows[0].length; c.height = rows.length;
+  const x = c.getContext('2d');
+  rows.forEach((r, j) => [...r].forEach((ch, i) => {
+    if (pal[ch]) { x.fillStyle = pal[ch]; x.fillRect(i, j, 1, 1); }
+  }));
+  return c;
+}
+const PAL = { k:'#2b1d14', s:'#f0b48a', e:'#000', m:'#b35a4a', n:'#1f2a4d', w:'#fff', g:'#1e9e48', y:'#ffd23f', b:'#4a2c17', r:'#c8323c', a:'#999', d:'#333' };
+const TOP = [
+  "...kkkkkk...",
+  "..kkkkkkkk..",
+  "..kssssssk..",
+  "..ssesseks..",
+  "..ssssssss..",
+  "...ssmmss...",
+  "....ssss....",
+  "..nnwgwnn...",
+  ".nnnwgwnnn..",
+  ".snnwywnns..",
+  ".s.nwgwn.s..",
+  "...nnnnnn...",
+];
+const LEGS = [
+  ["...nn..nn...", "...nn..nn...", "...nn..nn...", "..bbb..bbb.."],
+  ["...nn..nn...", "..nn....nn..", ".nn......nn.", ".bb......bb."],
+  ["....nnnn....", "....nnnn....", "...nn.nn....", "...bbbbb...."],
+];
+const PLAYER = LEGS.map(l => sprite([...TOP, ...l], PAL));
+const PJUMP = sprite([...TOP.slice(0, 9), ".snnwgwnns..", "s..nnnnnn..s", "...nnnnnn...", "..nn....nn..", ".nn......nn.", ".bb......bb."].slice(0,16), PAL);
+// Polícia Federal agent: black cap and uniform, yellow "PF" lettering
+const POLICE = [0, 1].map(f => sprite([
+  "...pppppp...",
+  "..pppyyppp..",
+  "..pppppppppp",
+  "...ssssss...",
+  "...sessse...",
+  "...ssssss...",
+  "....ssss....",
+  "..pppppppp..",
+  ".ppyppyyppp.",
+  ".spyppyppps.",
+  ".s.pppppp.s.",
+  "...yyyyyy...",
+  ...(f ? ["...pp..pp...", "..pp....pp..", ".pp......pp.", ".pp......pp."]
+        : ["...pp..pp...", "...pp..pp...", "...pp..pp...", "..ppp..ppp.."]),
+], { ...PAL, p: '#151515' }));
+
+// flying Lula head: gray hair and beard
+// Donald Trump waiting at the plane; frame 1 waves
+const TRUMP_ROWS = [
+  "..yyyyyyy...",
+  ".yyyyyyyyyy.",
+  ".yyooooooy..",
+  "..oeoooeo...",
+  "..oooooooo..",
+  "...oommoo...",
+  "....oooo....",
+  "..nnwrwnn...",
+  ".nnnwrwnnn..",
+  ".onnwrwnno..",
+  ".o.nnrnnn.o.",
+  "...nnrnnn...",
+  "...nnnnnn...",
+  "...nn..nn...",
+  "...nn..nn...",
+  "..kkk..kkk..",
+];
+const TPAL = { ...PAL, y: '#f2c94c', o: '#f0a060', k: '#111' };
+const TRUMP = [
+  sprite(TRUMP_ROWS, TPAL),
+  sprite(TRUMP_ROWS.map((r, j) =>
+    j === 4 ? "..oooooooo.o" : j >= 5 && j <= 7 ? r.slice(0, 10) + "n." : j === 9 ? ".onnwrwnn..." : j === 10 ? ".o.nnrnnn..." : r), TPAL),
+];
+const TRUMP_X = 3935;
+
+const LULA = sprite([
+  "...hhhhhh...",
+  "..hhhhhhhh..",
+  ".hssssssssh.",
+  ".ssessssess.",
+  ".ssssssssss.",
+  ".sssssossss.",
+  ".BBBBBBBBBB.",
+  ".BBBmmmmBBB.",
+  ".BBBBBBBBBB.",
+  "..BBBBBBBB..",
+  "...BBBBBB...",
+  ".....BB.....",
+], { ...PAL, h: '#9a9a9a', B: '#d4d4d4', o: '#d08a60' });
+
+// ---------- level ----------
+const solids = [];
+const G = (a, b) => solids.push({ x: a, y: GROUND, w: b - a, h: 40 });
+const P = (x, y, w) => solids.push({ x, y, w, h: 8, plat: true });
+G(0, 580); G(610, 1020); G(1050, 1320); G(1350, 1820); G(1850, 2210);
+// ocean islands
+[[2240, 2350, 176], [2380, 2510, 166], [2540, 2690, 172], [2720, 2850, 162], [2880, 3010, 170]]
+  .forEach(([a, b, y]) => solids.push({ x: a, y, w: b - a, h: 60, island: true }));
+G(3040, LEVEL);
+P(300, 140, 64); P(760, 132, 48); P(1180, 124, 64); P(1560, 138, 80); P(1680, 104, 48);
+P(3300, 140, 64); P(3500, 120, 64); P(3640, 96, 48);
+
+const CHECKPOINTS = [0, 1050, 1850, 2540, 3040];
+const PLANE_X = 3870;
+
+let p, enemies, papers, coins, lives, money, state, camX, frame, plane;   // money is in millions
+const milhoes = m => 'US$ ' + m + (m === 1 ? ' milhão' : ' milhões');
+
+function reset() {
+  p = { x: 30, y: 120, w: 10, h: 16, vx: 0, vy: 0, onGround: false, face: 1, inv: 0, coyote: 0, anim: 0 };
+  enemies = [[400, 300, 540], [850, 660, 990], [1240, 1080, 1290], [1500, 1400, 1640], [1720, 1600, 1790],
+             [3250, 3100, 3400], [3450, 3350, 3600], [3700, 3600, 3820]]
+    .map(([x, min, max]) => ({ x, y: GROUND - 16, w: 10, h: 16, min, max, dir: -1, alive: true }));
+  papers = [700, 1350, 2000, 2500, 2900, 3400, 3750].map(x => ({ x, y0: 110 + (x % 40), y: 0, t: x, w: 12, h: 12, on: false }));
+  coins = [];
+  for (let x = 120; x < 3800; x += 90) {
+    const s = solids.find(s => x >= s.x && x < s.x + s.w);
+    if (s) coins.push({ x, y: s.y - 22, got: false });
+  }
+  [[320, 120], [340, 120], [1200, 104], [1220, 104], [1700, 84], [3660, 76]].forEach(([x, y]) => coins.push({ x, y, got: false }));
+  lives = 3; money = 0; camX = 0; frame = 0; plane = null;
+}
+reset(); state = 'title';
+
+// ---------- input ----------
+const keys = { left: false, right: false, jump: false };
+let jumpPressed = false;
+const MAP = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', ArrowUp: 'jump', KeyW: 'jump', Space: 'jump' };
+function press(k, down) {
+  if (down && k === 'jump' && !keys.jump) jumpPressed = true;
+  keys[k] = down;
+  if (down) { initAudio(); if (state !== 'play' && k === 'jump') { if (state !== 'title') reset(); state = 'play'; jumpPressed = false; } }
+}
+addEventListener('keydown', e => { const k = MAP[e.code]; if (k) { e.preventDefault(); press(k, true); } });
+addEventListener('keyup', e => { const k = MAP[e.code]; if (k) press(k, false); });
+document.querySelectorAll('#touch button').forEach(b => {
+  const k = b.dataset.k;
+  b.addEventListener('pointerdown', e => { e.preventDefault(); press(k, true); });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, () => press(k, false)));
+});
+cv.addEventListener('pointerdown', () => { if (state !== 'play') { press('jump', true); press('jump', false); } });
+
+// ---------- audio ----------
+let ac;
+function initAudio() { if (!ac) try { ac = new AudioContext(); } catch (e) {} }
+function beep(f, d = 0.08, type = 'square', slide = 0) {
+  if (!ac) return;
+  const o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime;
+  o.type = type; o.frequency.setValueAtTime(f, t);
+  if (slide) o.frequency.linearRampToValueAtTime(f + slide, t + d);
+  g.gain.setValueAtTime(0.08, t); g.gain.exponentialRampToValueAtTime(0.001, t + d);
+  o.connect(g).connect(ac.destination); o.start(t); o.stop(t + d);
+}
+
+
+// background chiptune: Hino Nacional Brasileiro opening; M or the button toggles
+const BEAT = 0.42;
+const midi = n => 440 * 2 ** ((n - 69) / 12);
+// melody, one entry per note -> label:note:beats ("-" note = rest). Edit notes here to fix the tune.
+const CHANT = `~:C4:.75 ~:F4:.25 ~:F4:.75 ~:F4:.25 ~:G4:.75 ~:A4:.25 ~:Bb4:.5 ~:A4:.5 ~:G4:1 -:-:.5
+               ~:A4:.75 ~:Bb4:.25 ~:C5:.75 ~:C5:.25 ~:D5:.75 ~:C5:.25 ~:Bb4:.5 ~:A4:.5 ~:G4:.5 ~:F4:1.5 -:-:.5`;
+const NOTE = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+const parseNote = n => n === '-' ? 0 : 12 * (+n.slice(-1) + 1) + NOTE[n[0]] + (n[1] === '#' ? 1 : n[1] === 'b' ? -1 : 0);
+const TRACKS = [
+  { type: 'square', vol: 0.035, seq: CHANT.trim().split(/\s+/).map(w => { const [, n, len] = w.split(':'); return [parseNote(n), +len]; }) },
+  { type: 'triangle', vol: 0.09, seq: [53, 53, 48, 46, 48, 48, 53, 46, 53, 48, 53, 53].map(n => [n, 1]) },   // 12 beats, F major: F, C, Bb roots
+];
+let musicOn = true, trackT = [], trackI = [];
+function note(f, t, d, type, vol) {
+  const o = ac.createOscillator(), g = ac.createGain();
+  o.type = type; o.frequency.value = f;
+  g.gain.setValueAtTime(vol, t); g.gain.setValueAtTime(vol, t + d * 0.7); g.gain.linearRampToValueAtTime(0, t + d);
+  o.connect(g).connect(ac.destination); o.start(t); o.stop(t + d);
+}
+setInterval(() => {
+  if (!ac || !musicOn) return;
+  const now = ac.currentTime;
+  // (re)start both tracks together if we fell behind (first start, unmute, tab in background)
+  if (!(trackT[0] >= now)) { trackT = TRACKS.map(() => now + 0.05); trackI = TRACKS.map(() => 0); }
+  TRACKS.forEach((tr, k) => {
+    while (trackT[k] < now + 0.25) {
+      const [n, len] = tr.seq[trackI[k]];
+      if (n) note(midi(n), trackT[k], len * BEAT * 0.9, tr.type, tr.vol);
+      trackT[k] += len * BEAT; trackI[k] = (trackI[k] + 1) % tr.seq.length;
+    }
+  });
+}, 50);
+const musBtn = document.getElementById('mus');
+function toggleMusic() {
+  initAudio();
+  musicOn = !musicOn; trackT = [];
+  musBtn.textContent = '♪ MÚSICA: ' + (musicOn ? 'ON' : 'OFF');
+  musBtn.blur();   // so Space keeps jumping instead of re-clicking the button
+}
+musBtn.addEventListener('click', toggleMusic);
+addEventListener('keydown', e => { if (e.code === 'KeyM') toggleMusic(); });
+
+// ---------- update ----------
+const hit = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+
+function hurt() {
+  if (p.inv > 0) return;
+  lives--; p.inv = 90; p.vy = -5; p.vx = -p.face * 3;
+  beep(200, 0.3, 'sawtooth', -150);
+  if (lives <= 0) state = 'over';
+}
+
+function update() {
+  frame++;
+  if (state === 'win') {
+    if (plane) { plane.t++; if (plane.t > 55) { plane.vx = Math.min(plane.vx + 0.08, 5); plane.x += plane.vx; if (plane.t > 85) plane.y -= plane.vx * 0.35; } }
+    return;
+  }
+  if (state !== 'play') return;
+
+  const dir = keys.right - keys.left;
+  if (dir) p.face = dir;
+  p.vx += (dir * 2 - p.vx) * 0.25;
+  p.coyote = p.onGround ? 6 : p.coyote - 1;
+  if (jumpPressed && p.coyote > 0) { p.vy = -7.6; p.coyote = 0; beep(440, 0.1, 'square', 300); }
+  jumpPressed = false;
+  if (!keys.jump && p.vy < -3) p.vy = -3;
+  p.vy = Math.min(p.vy + 0.4, 8);
+
+  p.x += p.vx;
+  for (const s of solids) if (hit(p, s)) p.x = p.vx > 0 ? s.x - p.w : s.x + s.w;
+  p.x = Math.max(0, p.x);
+  p.y += p.vy; p.onGround = false;
+  for (const s of solids) if (hit(p, s)) {
+    if (p.vy > 0) { p.y = s.y - p.h; p.onGround = true; } else p.y = s.y + s.h;
+    p.vy = 0;
+  }
+  if (p.inv > 0) p.inv--;
+  if (Math.abs(p.vx) > 0.3) p.anim += 0.2;
+
+  // fell
+  if (p.y > H + 20) {
+    lives--; beep(300, 0.4, 'triangle', -250);
+    if (lives <= 0) { state = 'over'; return; }
+    const cp = CHECKPOINTS.filter(c => c <= p.x).pop();
+    p.x = cp + 10; p.y = 100; p.vx = p.vy = 0; p.inv = 60;
+  }
+
+  for (const e of enemies) {
+    if (!e.alive) continue;
+    e.x += e.dir * 0.5;
+    if (e.x < e.min || e.x > e.max) e.dir *= -1;
+    if (hit(p, e)) {
+      if (p.vy > 0 && p.y + p.h - e.y < 8) { e.alive = false; p.vy = -6; money += 5; beep(660, 0.12, 'square', -300); }
+      else hurt();
+    }
+  }
+  for (const d of papers) {
+    if (!d.on && d.x - camX < W + 20) d.on = true;
+    if (!d.on) continue;
+    d.t++; d.x -= 0.9; d.y = d.y0 + Math.sin(d.t / 18) * 14;
+    if (hit(p, d)) hurt();
+  }
+  for (const c of coins) if (!c.got && hit(p, { x: c.x, y: c.y, w: 8, h: 6 })) { c.got = true; money++; beep(988, 0.06); setTimeout(() => beep(1318, 0.08), 60); }
+
+  if (p.x > PLANE_X + 10) { state = 'win'; plane = { x: PLANE_X - 20, y: GROUND - 22, vx: 0, t: 0 }; beep(523, 0.15); setTimeout(() => beep(659, 0.15), 150); setTimeout(() => beep(784, 0.3), 300); }
+
+  camX = Math.max(0, Math.min(LEVEL - W, p.x - 140));
+}
+
+// ---------- draw ----------
+const lerp = (a, b, t) => a + (b - a) * t;
+function mix(c1, c2, t) { return `rgb(${c1.map((v, i) => Math.round(lerp(v, c2[i], t))).join(',')})`; }
+function rect(x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), w, h); }
+function text(s, x, y, c = '#fff', align = 'center') {
+  ctx.font = FONT; ctx.textAlign = align;
+  ctx.fillStyle = '#000'; ctx.fillText(s, x + 1, y + 1);
+  ctx.fillStyle = c; ctx.fillText(s, x, y);
+}
+
+const sunPhoto = new Image();
+sunPhoto.src = 'lula.png';   // optional; falls back to the pixel face if missing
+
+function drawBackground() {
+  const t = camX / (LEVEL - W);
+  const sky = ctx.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, mix([90, 160, 230], [120, 70, 160], t));
+  sky.addColorStop(1, mix([180, 220, 250], [255, 160, 120], t));
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
+  // sun
+  ctx.fillStyle = mix([255, 240, 150], [255, 120, 80], t);
+  const sunX = 320 - t * 40, sunY = 40 + t * 70;
+  ctx.beginPath(); ctx.arc(sunX, sunY, 16, 0, 7); ctx.fill();
+  if (sunPhoto.complete && sunPhoto.naturalWidth) {
+    // real photo (lula.png next to index.html), cropped to a circle inside the sun's ring
+    const s = Math.min(sunPhoto.naturalWidth, sunPhoto.naturalHeight);
+    ctx.save(); ctx.beginPath(); ctx.arc(sunX, sunY, 14, 0, 7); ctx.clip();
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(sunPhoto, (sunPhoto.naturalWidth - s) / 2, (sunPhoto.naturalHeight - s) / 2, s, s, sunX - 14, sunY - 14, 28, 28);
+    ctx.restore(); ctx.imageSmoothingEnabled = false;
+  } else ctx.drawImage(LULA, Math.round(sunX) - 12, Math.round(sunY) - 12, 24, 24);   // pixel Lula face, 2x
+  // clouds
+  ctx.fillStyle = '#ffffffcc';
+  for (let i = 0; i < 8; i++) {
+    const cx = ((i * 160 - camX * 0.15) % 1280 + 1280) % 1280 - 100, cy = 20 + (i * 37) % 50;
+    rect(cx, cy, 40, 8, '#ffffffbb'); rect(cx + 8, cy - 6, 22, 6, '#ffffffbb');
+  }
+  // Brasília: Congresso Nacional
+  const bx = 150 - camX * 0.3;
+  if (bx > -120) {
+    const c = '#8fa3b8';
+    rect(bx + 30, 100, 8, 60, c); rect(bx + 42, 100, 8, 60, c); rect(bx + 30, 120, 20, 3, c);
+    rect(bx - 10, 150, 100, 10, c);
+    ctx.fillStyle = c;
+    ctx.beginPath(); ctx.ellipse(bx + 5, 150, 18, 9, 0, Math.PI, 0); ctx.fill();   // bowl down
+    ctx.beginPath(); ctx.ellipse(bx + 75, 141, 18, 9, 0, 0, Math.PI); ctx.fill();   // bowl up
+  }
+  // Miami skyline
+  const colors = ['#f7a1c4', '#7ad3d6', '#fbe7a1', '#c3a5f0', '#ffffff'];
+  for (let i = 0; i < 22; i++) {
+    const x = 930 + i * 30 - camX * 0.3, h = 30 + ((i * 53) % 50);
+    if (x < -30 || x > W) continue;
+    rect(x, 165 - h, 24, h, colors[i % 5]);
+    for (let wy = 170 - h; wy < 160; wy += 8) for (let wx = 4; wx < 22; wx += 6) rect(x + wx, wy, 3, 4, '#3a4a7a88');
+  }
+  // hills (Brasil) or sea, by column
+  for (let x = 0; x < W; x += 2) {
+    const wx = camX + x;
+    if (wx < 2200) {
+      const hy = 158 + Math.sin((x + camX * 0.5) / 30) * 8 + Math.sin((x + camX * 0.5) / 13) * 3;
+      rect(x, hy, 2, H - hy, '#3f9b4f');
+    } else {
+      rect(x, 165, 2, H - 165, '#2a7fbf');
+      if ((x + frame) % 24 < 4) rect(x, 168 + ((x * 7) % 20), 2, 1, '#9fd6ff');
+    }
+  }
+}
+
+function drawPalm(x, y) {
+  rect(x + 3, y - 30, 3, 30, '#8a5a2b');
+  ctx.fillStyle = '#2e9e4f';
+  [[-14, -2], [14, -2], [-10, 4], [10, 4], [0, -6]].forEach(([dx, dy]) => {
+    ctx.fillRect(x + 4 + Math.min(0, dx), y - 32 + dy / 2, Math.abs(dx) || 3, 3);
+    ctx.fillRect(x + 4 + dx - Math.sign(dx) * 2, y - 30 + dy, 3, 3);
+  });
+}
+
+function drawWorld() {
+  ctx.save(); ctx.translate(-Math.round(camX), 0);
+  // water in the ocean section
+  rect(2210, 196, 830, 20, '#1f5f99');
+  for (let x = 2210; x < 3040; x += 16) rect(x + (frame >> 3) % 8, 196, 6, 2, '#7cc4ff');
+
+  for (const s of solids) {
+    if (s.x + s.w < camX || s.x > camX + W) continue;
+    const sand = s.x >= 2200;
+    if (s.plat) {
+      rect(s.x, s.y, s.w, s.h, '#a0522d'); rect(s.x, s.y, s.w, 2, sand ? '#ffd27f' : '#5cc95c');
+      for (let x = s.x; x < s.x + s.w; x += 8) rect(x, s.y + 2, 1, 6, '#6e3a1e');
+      continue;
+    }
+    rect(s.x, s.y, s.w, s.h, sand ? '#e8c27a' : '#8b5a2b');
+    rect(s.x, s.y, s.w, 4, sand ? '#f6dc9a' : '#4fbf4f');
+    if (!sand) rect(s.x, s.y + 4, s.w, 2, '#2f8f3f');
+    for (let x = s.x; x < s.x + s.w; x += 12) for (let y = s.y + 10; y < s.y + s.h; y += 10)
+      rect(x + ((y / 10) % 2) * 6, y, 2, 2, sand ? '#d4a95e' : '#6e4520');
+  }
+  // signs
+  sign(40, 'BRASÍLIA', '#1e9e48', '#ffd23f');
+  sign(2150, 'MIAMI', '#2a7fbf', '#fff');
+  for (const x of [3180, 3380, 3560, 3760, 3960]) drawPalm(x, GROUND);
+  for (const x of [200, 900, 1450]) drawIpe(x, GROUND);
+
+  // plane
+  const pl = plane || { x: PLANE_X - 20, y: GROUND - 22 };
+  drawPlane(pl.x, pl.y);
+  // Trump waits beside the plane, waving and greeting when Flávio gets close;
+  // after Flávio boards he walks to the plane and gets in before takeoff
+  const near = state === 'win' || p.x > TRUMP_X - 220;
+  const walked = state === 'win' ? Math.min(plane.t * 0.6, 24) : 0;
+  if (!(state === 'win' && plane.t > 42)) {
+    const walking = walked > 0 && walked < 24, bob = walking ? (frame >> 3) % 2 : 0;
+    drawSprite(TRUMP[!walked && near && (frame >> 4) % 2 ? 1 : 0], TRUMP_X - walked, GROUND - 16 - bob, true);
+    if (near && !walked) {
+      rect(TRUMP_X - 30, GROUND - 38, 60, 14, '#fff'); rect(TRUMP_X + 2, GROUND - 24, 4, 4, '#fff');
+      ctx.font = FONT; ctx.textAlign = 'center'; ctx.fillStyle = '#1f2a4d'; ctx.fillText('WELCOME!', TRUMP_X, GROUND - 27);
+    }
+  }
+
+  for (const c of coins) if (!c.got) {
+    const y = c.y + Math.sin((frame + c.x) / 10) * 2;
+    rect(c.x, y, 9, 6, '#2e8b3e'); rect(c.x + 1, y + 1, 7, 4, '#7fd27f'); rect(c.x + 4, y + 1, 1, 4, '#1e5e2a');
+  }
+  for (const e of enemies) if (e.alive) drawSprite(POLICE[(frame >> 4) & 1], e.x - 1, e.y, e.dir < 0);
+  for (const d of papers) if (d.on) {
+    const up = (frame >> 3) % 2;   // flapping wings
+    rect(d.x - 5, d.y + 3 - up * 2, 5, 3, '#fff'); rect(d.x - 3, d.y + 6 - up * 2, 3, 2, '#fff');
+    rect(d.x + 12, d.y + 3 - up * 2, 5, 3, '#fff'); rect(d.x + 12, d.y + 6 - up * 2, 3, 2, '#fff');
+    drawSprite(LULA, d.x, d.y);
+  }
+  if (state !== 'win' && (p.inv === 0 || (frame >> 2) % 2)) {
+    const spr = !p.onGround ? PJUMP : Math.abs(p.vx) > 0.3 ? PLAYER[Math.floor(p.anim) % 2] : PLAYER[0];
+    drawSprite(spr, p.x - 1, p.y, p.face < 0);
+  }
+  ctx.restore();
+}
+
+function drawIpe(x, y) {
+  rect(x + 5, y - 22, 3, 22, '#6b4423');
+  ctx.fillStyle = '#ffd23f';
+  ctx.beginPath(); ctx.ellipse(x + 6, y - 26, 14, 9, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = '#f2b705'; ctx.fillRect(x - 2, y - 26, 4, 3); ctx.fillRect(x + 10, y - 30, 4, 3);
+}
+
+function sign(x, label, bg, fg, size = 8) {
+  const top = GROUND - 26 - size - 6;
+  rect(x + 14, top, 3, GROUND - top, '#6b4423');
+  ctx.font = FONT.replace('8px', size + 'px'); const w = ctx.measureText(label).width + size;
+  rect(x + 15 - w / 2 - 1, top - 1, w + 2, size + 8, '#2a2a5a');   // dark border
+  rect(x + 15 - w / 2, top, w, size + 6, bg);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#0006'; ctx.fillText(label, x + 16, top + size + 4);
+  ctx.fillStyle = fg; ctx.fillText(label, x + 15, top + size + 3);
+}
+
+function drawPlane(x, y) {
+  rect(x, y + 6, 64, 12, '#f2f2f2');
+  rect(x + 56, y + 8, 12, 8, '#f2f2f2'); rect(x + 64, y + 10, 4, 4, '#9fd6ff');
+  rect(x - 4, y - 6, 12, 14, '#c8323c');
+  rect(x, y + 14, 64, 2, '#c8323c');
+  for (let i = 0; i < 6; i++) rect(x + 14 + i * 7, y + 9, 3, 3, '#3a6ea5');
+  rect(x + 24, y + 16, 22, 4, '#bbb');
+  if (!plane || plane.t < 85) { rect(x + 14, y + 18, 3, 4, '#333'); rect(x + 50, y + 18, 3, 4, '#333'); }
+}
+
+function drawSprite(img, x, y, flip) {
+  x = Math.round(x); y = Math.round(y);
+  if (flip) { ctx.save(); ctx.scale(-1, 1); ctx.drawImage(img, -x - img.width, y); ctx.restore(); }
+  else ctx.drawImage(img, x, y);
+}
+
+function drawHUD() {
+  for (let i = 0; i < 3; i++) {
+    const c = i < lives ? '#e63946' : '#0006', x = 8 + i * 12;
+    rect(x, 9, 3, 2, c); rect(x + 4, 9, 3, 2, c); rect(x - 1, 10, 9, 3, c); rect(x, 13, 7, 2, c); rect(x + 2, 15, 3, 2, c);
+  }
+  text('US$ ' + money + ' MI', W - 8, 16, '#7fd27f', 'right');
+  // progress bar
+  const bx = 72, bw = W - 200, prog = Math.min(1, p.x / PLANE_X);   // leaves room on the right for MIA + money
+  rect(bx, 10, bw, 6, '#0006'); rect(bx, 10, bw * prog, 6, '#ffd23f');
+  text('BSB', bx - 4, 17, '#fff', 'right'); text('MIA', bx + bw + 4, 17, '#fff', 'left');
+}
+
+function panel(lines) {
+  rect(40, 46, W - 80, 120, '#000a');
+  lines.forEach(([s, c], i) => text(s, W / 2, 70 + i * 16, c));
+}
+
+function draw() {
+  drawBackground();
+  drawWorld();
+  drawHUD();
+  const blink = (frame >> 5) % 2 ? '#fff' : '#ffd23f';
+  if (state === 'title') panel([
+    ['CORRE, FLÁVIO!', '#ffd23f'], ['Perdeu a eleição...', '#fff'], ['Fuja até Miami!', '#fff'],
+    ['← → mover  ↑ pular', '#9fd6ff'], ['M liga/desliga música', '#9fd6ff'], ['ESPAÇO p/ começar', blink]]);
+  if (state === 'over') panel([
+    ['PEGO PELA PF!', '#e63946'], ['', ''], ['Juntou ' + milhoes(money), '#7fd27f'], ['', ''], ['ESPAÇO p/ tentar de novo', blink]]);
+  if (state === 'win' && plane.t > 120) panel([
+    ['PARABÉNS!', '#f7a1c4'], ['VOCÊ É UM COVARDE!', '#ffd23f'], ['Dinheiro do Vorcaro:', '#fff'], [milhoes(money), '#7fd27f'], ['Vidas: ' + lives, '#fff'], ['ESPAÇO p/ jogar de novo', blink]]);
+}
+
+// ---------- loop ----------
+let last = 0, acc = 0;
+function loop(t) {
+  acc += Math.min(100, t - last); last = t;
+  while (acc >= 1000 / 60) { update(); acc -= 1000 / 60; }
+  draw();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(t => { last = t; loop(t); });
+</script>
+</body>
+</html>
