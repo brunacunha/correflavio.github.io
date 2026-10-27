@@ -13,12 +13,10 @@
   #touch div{display:flex;gap:12px}
   #touch button{pointer-events:auto;width:64px;height:64px;border-radius:12px;border:3px solid #fff8;background:#0006;color:#fff;font:16px 'Press Start 2P',monospace}
   @media (pointer:coarse){#touch{display:flex}}
-  #mus{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);padding:8px 12px;border-radius:8px;border:2px solid #fff8;background:#0008;color:#fff;font:10px 'Press Start 2P',monospace;cursor:pointer}
 </style>
 </head>
 <body>
 <div id="wrap"><canvas id="c" width="384" height="216"></canvas></div>
-<button id="mus">♪ MÚSICA: ON</button>
 <div id="touch">
   <div><button data-k="left">◀</button><button data-k="right">▶</button></div>
   <div><button data-k="jump">▲</button></div>
@@ -187,47 +185,6 @@ function beep(f, d = 0.08, type = 'square', slide = 0) {
 }
 
 
-// background chiptune: Hino Nacional Brasileiro opening; M or the button toggles
-const BEAT = 0.42;
-const midi = n => 440 * 2 ** ((n - 69) / 12);
-// melody, one entry per note -> label:note:beats ("-" note = rest). Edit notes here to fix the tune.
-const CHANT = `~:C4:.75 ~:F4:.25 ~:F4:.75 ~:F4:.25 ~:G4:.75 ~:A4:.25 ~:Bb4:.5 ~:A4:.5 ~:G4:1 -:-:.5
-               ~:A4:.75 ~:Bb4:.25 ~:C5:.75 ~:C5:.25 ~:D5:.75 ~:C5:.25 ~:Bb4:.5 ~:A4:.5 ~:G4:.5 ~:F4:1.5 -:-:.5`;
-const NOTE = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
-const parseNote = n => n === '-' ? 0 : 12 * (+n.slice(-1) + 1) + NOTE[n[0]] + (n[1] === '#' ? 1 : n[1] === 'b' ? -1 : 0);
-const TRACKS = [
-  { type: 'square', vol: 0.035, seq: CHANT.trim().split(/\s+/).map(w => { const [, n, len] = w.split(':'); return [parseNote(n), +len]; }) },
-  { type: 'triangle', vol: 0.09, seq: [53, 53, 48, 46, 48, 48, 53, 46, 53, 48, 53, 53].map(n => [n, 1]) },   // 12 beats, F major: F, C, Bb roots
-];
-let musicOn = true, trackT = [], trackI = [];
-function note(f, t, d, type, vol) {
-  const o = ac.createOscillator(), g = ac.createGain();
-  o.type = type; o.frequency.value = f;
-  g.gain.setValueAtTime(vol, t); g.gain.setValueAtTime(vol, t + d * 0.7); g.gain.linearRampToValueAtTime(0, t + d);
-  o.connect(g).connect(ac.destination); o.start(t); o.stop(t + d);
-}
-setInterval(() => {
-  if (!ac || !musicOn) return;
-  const now = ac.currentTime;
-  // (re)start both tracks together if we fell behind (first start, unmute, tab in background)
-  if (!(trackT[0] >= now)) { trackT = TRACKS.map(() => now + 0.05); trackI = TRACKS.map(() => 0); }
-  TRACKS.forEach((tr, k) => {
-    while (trackT[k] < now + 0.25) {
-      const [n, len] = tr.seq[trackI[k]];
-      if (n) note(midi(n), trackT[k], len * BEAT * 0.9, tr.type, tr.vol);
-      trackT[k] += len * BEAT; trackI[k] = (trackI[k] + 1) % tr.seq.length;
-    }
-  });
-}, 50);
-const musBtn = document.getElementById('mus');
-function toggleMusic() {
-  initAudio();
-  musicOn = !musicOn; trackT = [];
-  musBtn.textContent = '♪ MÚSICA: ' + (musicOn ? 'ON' : 'OFF');
-  musBtn.blur();   // so Space keeps jumping instead of re-clicking the button
-}
-musBtn.addEventListener('click', toggleMusic);
-addEventListener('keydown', e => { if (e.code === 'KeyM') toggleMusic(); });
 
 // ---------- update ----------
 const hit = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
