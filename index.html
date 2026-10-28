@@ -57,8 +57,39 @@ const LEGS = [
   ["...nn..nn...", "..nn....nn..", ".nn......nn.", ".bb......bb."],
   ["....nnnn....", "....nnnn....", "...nn.nn....", "...bbbbb...."],
 ];
-const PLAYER = LEGS.map(l => sprite([...TOP, ...l], PAL));
-const PJUMP = sprite([...TOP.slice(0, 9), ".snnwgwnns..", "s..nnnnnn..s", "...nnnnnn...", "..nn....nn..", ".nn......nn.", ".bb......bb."].slice(0,16), PAL);
+// Vorcaro, o banqueiro: cabelo, bigode e gravata vermelha
+const VORCARO_TOP = [
+  "...kkkkkk...",
+  "..khhhhhhk..",
+  "..kssssssk..",
+  "..ssesseks..",
+  "..ssssssss..",
+  "...smmmms...",
+  "....ssss....",
+  "..nnwrwnn...",
+  ".nnnwrwnnn..",
+  ".snnwrwnns..",
+  ".s.nwrwn.s..",
+  "...nnnnnn...",
+];
+const VPAL = { ...PAL, h: '#241a15', m: '#241a15' };
+const makeJump = (top, pal) => sprite([...top.slice(0, 9), ".snnwgwnns..", "s..nnnnnn..s", "...nnnnnn...", "..nn....nn..", ".nn......nn.", ".bb......bb."].slice(0, 16), pal);
+const PLAYER_FLAVIO = LEGS.map(l => sprite([...TOP, ...l], PAL));
+const PJUMP_FLAVIO = makeJump(TOP, PAL);
+const PLAYER_VORCARO = LEGS.map(l => sprite([...VORCARO_TOP, ...l], VPAL));
+const PJUMP_VORCARO = makeJump(VORCARO_TOP, VPAL);
+let avatar = 'flavio', unlocked = false;
+try {
+  unlocked = localStorage.getItem('correflavio.unlocked') === '1';
+  const saved = localStorage.getItem('correflavio.avatar');
+  if (saved === 'vorcaro' || saved === 'flavio') avatar = saved;
+} catch (e) {}
+let PLAYER = PLAYER_FLAVIO, PJUMP = PJUMP_FLAVIO;
+function applyAvatar() {
+  PLAYER = avatar === 'vorcaro' ? PLAYER_VORCARO : PLAYER_FLAVIO;
+  PJUMP = avatar === 'vorcaro' ? PJUMP_VORCARO : PJUMP_FLAVIO;
+}
+applyAvatar();
 // Polícia Federal agent: black cap and uniform, yellow "PF" lettering
 const POLICE = [0, 1].map(f => sprite([
   "...pppppp...",
@@ -199,7 +230,7 @@ let framesPlayed = 0, receiptShown = false;
 const milhoes = m => 'US$ ' + m + (m === 1 ? ' milhão' : ' milhões');
 
 function reset() {
-  p = { x: 30, y: 120, w: 10, h: 16, vx: 0, vy: 0, onGround: false, face: 1, inv: 0, coyote: 0, anim: 0, scissors: false, snip: 0 };
+  p = { x: 30, y: 120, w: 10, h: 16, vx: 0, vy: 0, onGround: false, face: 1, inv: 0, coyote: 0, anim: 0, scissors: false, snip: 0, avatar, cdb: 0, liq: 0 };
   enemies = [[400, 300, 540], [850, 660, 990], [1240, 1080, 1290], [1500, 1400, 1640], [1720, 1600, 1790],
              [3250, 3100, 3400], [3450, 3350, 3600], [3700, 3600, 3820]]
     .map(([x, min, max]) => ({ x, y: GROUND - 16, w: 10, h: 16, min, max, dir: -1, alive: true }));
@@ -224,6 +255,13 @@ let jumpPressed = false;
 const MAP = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', ArrowUp: 'jump', KeyW: 'jump', Space: 'jump', ArrowDown: 'down', KeyS: 'down' };
 function press(k, down) {
   if (down && k === 'jump' && !keys.jump) jumpPressed = true;
+  if (down && state === 'title' && unlocked && (k === 'left' || k === 'right')) {
+    avatar = avatar === 'flavio' ? 'vorcaro' : 'flavio';
+    applyAvatar();
+    try { localStorage.setItem('correflavio.avatar', avatar); } catch (e) {}
+    beep(k === 'right' ? 784 : 659, 0.07);
+    return;
+  }
   keys[k] = down;
   if (down) { initAudio(); if (state !== 'play' && k === 'jump') { if (state !== 'title') reset(); state = 'play'; jumpPressed = false; } }
 }
@@ -321,7 +359,8 @@ function update() {
 
   // fell
   if (p.y > H + 20) {
-    lives--; beep(300, 0.4, 'triangle', -250);
+    if (p.avatar === 'vorcaro' && money > 0) { money = 0; p.liq = 120; }
+    else { lives--; beep(300, 0.4, 'triangle', -250); }
     if (lives <= 0) { state = 'over'; return; }
     const cp = CHECKPOINTS.filter(c => c <= p.x).pop();
     p.x = cp + 10; p.y = 100; p.vx = p.vy = 0; p.inv = 60;
@@ -381,7 +420,19 @@ function update() {
   }
   for (const c of coins) if (!c.got && hit(p, { x: c.x, y: c.y, w: 8, h: 6 })) { c.got = true; money++; beep(988, 0.06); setTimeout(() => beep(1318, 0.08), 60); }
 
-  if (p.x > PLANE_X + 10) { state = 'win'; plane = { x: PLANE_X - 20, y: GROUND - 22, vx: 0, t: 0 }; beep(523, 0.15); setTimeout(() => beep(659, 0.15), 150); setTimeout(() => beep(784, 0.3), 300); }
+  // Vorcaro: o dinheiro rende 10% a cada 5 segundos (CDB do Master)
+  if (p.avatar === 'vorcaro') {
+    p.cdb++;
+    if (p.cdb >= 300) { p.cdb = 0; money = Math.ceil(money * 1.1); }
+  }
+  if (p.liq > 0) p.liq--;
+  framesPlayed++;
+
+  if (p.x > PLANE_X + 10) {
+    state = 'win'; plane = { x: PLANE_X - 20, y: GROUND - 22, vx: 0, t: 0 };
+    if (!unlocked) { unlocked = true; try { localStorage.setItem('correflavio.unlocked', '1'); } catch (e) {} }
+    beep(523, 0.15); setTimeout(() => beep(659, 0.15), 150); setTimeout(() => beep(784, 0.3), 300);
+  }
 
   camX = Math.max(0, Math.min(LEVEL - W, p.x - 140));
 }
@@ -625,6 +676,7 @@ function drawHUD() {
     rect(x, 9, 3, 2, c); rect(x + 4, 9, 3, 2, c); rect(x - 1, 10, 9, 3, c); rect(x, 13, 7, 2, c); rect(x + 2, 15, 3, 2, c);
   }
   if (p.scissors) text('TESOURA', 8, 26, '#ffd23f', 'left');
+  if (p.liq > 0) text('LIQUIDAÇÃO!', W / 2, 34, '#ff6b6b');
   text('US$ ' + money + ' MI', W - 8, 16, '#7fd27f', 'right');
   // progress bar
   const bx = 72, bw = W - 200, prog = Math.min(1, p.x / PLANE_X);   // leaves room on the right for MIA + money
@@ -696,6 +748,7 @@ function draw() {
   if (state === 'title') panel([
     ['CORRE, FLÁVIO!', '#ffd23f'], ['Perdeu a eleição...', '#fff'], ['Fuja até Miami!', '#fff'],
     ['← → ou A D  mover', '#9fd6ff'], ['↑/W pula   ↓/S corta', '#9fd6ff'],
+    [unlocked ? 'avatar: ' + (avatar === 'vorcaro' ? 'VORCARO' : 'FLÁVIO') + '  ← →' : '', '#ffd23f'],
     ['ESPAÇO p/ começar', blink]]);
   if (state === 'over') panel([
     ['PEGO PELA PF!', '#e63946'], ['', ''], ['Juntou ' + milhoes(money), '#7fd27f'], ['', ''], ['ESPAÇO p/ tentar de novo', blink]]);
