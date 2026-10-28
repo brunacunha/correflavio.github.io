@@ -1033,13 +1033,15 @@ function draw() {
     ['CORRE, FLÁVIO!', '#ffd23f'], ['Perdeu a eleição...', '#fff'], ['Fuja até Miami!', '#fff'],
     ['← → ou A D  mover', '#9fd6ff'],
     ['↑/W pula' + (ACTION[avatar] ? '   ↓/S ' + ACTION[avatar] : ''), '#9fd6ff'],
-    [unlocked ? 'avatar: ' + AVATAR_NAME[avatar] + '  ← →' : '', '#ffd23f'],
+    [unlocked ? 'avatar: ' + AVATAR_NAME[avatar] + '  ← →' : 'termine 1 vez e libere avatares', '#ffd23f'],
     ['ESPAÇO p/ começar', blink]]);
   if (state === 'over') panel([
     ['PEGO PELA PF!', '#e63946'], ['', ''], ['Juntou ' + milhoes(money), '#7fd27f'], ['', ''], ['ESPAÇO p/ tentar de novo', blink]]);
   if (state === 'win' && plane.t > 120) showReceipt();
   if (state === 'win' && plane.t > 120) panel([
-    ['PARABÉNS!', '#f7a1c4'], ['VOCÊ É UM COVARDE!', '#ffd23f'], ['Dinheiro do Vorcaro:', '#fff'], [milhoes(money), '#7fd27f'], ['Vidas: ' + lives, '#fff'], ['ESPAÇO p/ jogar de novo', blink]]);
+    ['PARABÉNS!', '#f7a1c4'], ['VOCÊ É UM COVARDE!', '#ffd23f'], ['Dinheiro do Vorcaro:', '#fff'],
+    [milhoes(money), '#7fd27f'], ['AVATARES LIBERADOS!', '#ffd23f'],
+    ['← → troca no menu', '#9fd6ff'], ['ESPAÇO p/ jogar de novo', blink]]);
 }
 
 // ---------- loop ----------
