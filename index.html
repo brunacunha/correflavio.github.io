@@ -314,7 +314,7 @@ function press(k, down) {
     return;
   }
   keys[k] = down;
-  if (down) { initAudio(); if (state !== 'play' && k === 'jump') { if (state !== 'title') reset(); state = 'play'; jumpPressed = false; } }
+  if (down) { initAudio(); if (state !== 'play' && k === 'jump') { reset(); state = 'play'; jumpPressed = false; } }
 }
 addEventListener('keydown', e => {
   const k = MAP[e.code];
