@@ -211,6 +211,7 @@ const CAVALO = CAVALO_FRAMES[0];
 const PJUMP_CAVALO = CAVALO_FRAMES[1];
 const CAVALO_KICK_SPR = sprite(CAVALO_COICE, HPAL);
 const AVATARS = ['flavio', 'vorcaro', 'cavalo'];
+const HITBOX = { flavio: { w: 10, h: 16 }, vorcaro: { w: 10, h: 16 }, cavalo: { w: 16, h: 24 } };
 const AVATAR_NAME = { flavio: 'FLÁVIO', vorcaro: 'VORCARO', cavalo: 'BLACK HORSE' };
 let avatar = 'flavio', unlocked = false;
 try {
@@ -363,7 +364,8 @@ let farts = [], nextFart = 0;
 const milhoes = m => 'US$ ' + m + (m === 1 ? ' milhão' : ' milhões');
 
 function reset() {
-  p = { x: 30, y: 120, w: 10, h: 16, vx: 0, vy: 0, onGround: false, face: 1, inv: 0, coyote: 0, anim: 0, power: false, snip: 0, avatar, cdb: 0, liq: 0 };
+  const hb = HITBOX[avatar] || HITBOX.flavio;
+  p = { x: 30, y: 120, w: hb.w, h: hb.h, vx: 0, vy: 0, onGround: false, face: 1, inv: 0, coyote: 0, anim: 0, power: false, snip: 0, avatar, cdb: 0, liq: 0 };
   enemies = [[400, 300, 540], [850, 660, 990], [1240, 1080, 1290], [1500, 1400, 1640], [1720, 1600, 1790],
              [3250, 3100, 3400], [3450, 3350, 3600], [3700, 3600, 3820]]
     .map(([x, min, max]) => ({ x, y: GROUND - 16, w: 10, h: 16, min, max, dir: -1, alive: true }));
@@ -803,8 +805,8 @@ function drawWorld() {
         rect(ax, p.y + 2, 7, 1, '#fff'); rect(ax + 3, p.y + 6, 7, 1, '#fff'); rect(ax, p.y + 10, 7, 1, '#fff');
       }
     }
-    const ox = p.avatar === 'cavalo' ? Math.round((spr.width - p.w) / 2) : 1;
-    const oy = p.avatar === 'cavalo' ? p.h - spr.height : 0;
+    const ox = Math.round((spr.width - p.w) / 2);
+    const oy = p.h - spr.height;
     drawSprite(spr, p.x - ox, p.y + oy, p.face < 0);
   }
   for (const f of farts) {
