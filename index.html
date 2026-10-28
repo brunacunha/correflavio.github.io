@@ -13,10 +13,15 @@
   #touch div{display:flex;gap:12px}
   #touch button{pointer-events:auto;width:64px;height:64px;border-radius:12px;border:3px solid #fff8;background:#0006;color:#fff;font:16px 'Press Start 2P',monospace}
   @media (pointer:coarse){#touch{display:flex}}
+  #recibo{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);display:none;z-index:9;
+    padding:10px 14px;border:3px solid #ffd23f;border-radius:8px;background:#000d;color:#ffd23f;
+    font:10px 'Press Start 2P',monospace;text-decoration:none;cursor:pointer}
+  #recibo:hover{background:#ffd23f;color:#1a1a2e}
 </style>
 </head>
 <body>
 <div id="wrap"><canvas id="c" width="384" height="216"></canvas></div>
+<a id="recibo" download="comprovante-de-fuga.png">BAIXAR COMPROVANTE</a>
 <div id="touch">
   <div><button data-k="left">◀</button><button data-k="right">▶</button></div>
   <div><button data-k="down">▼</button><button data-k="jump">▲</button></div>
@@ -246,6 +251,7 @@ function reset() {
     .map(([x, y0]) => ({ x, y0, y: y0, t: 0, got: false }));
   bullets = [];
   lives = 3; money = 0; camX = 0; frame = 0; plane = null;
+  framesPlayed = 0; hideReceipt();
 }
 reset(); state = 'title';
 
@@ -752,6 +758,7 @@ function draw() {
     ['ESPAÇO p/ começar', blink]]);
   if (state === 'over') panel([
     ['PEGO PELA PF!', '#e63946'], ['', ''], ['Juntou ' + milhoes(money), '#7fd27f'], ['', ''], ['ESPAÇO p/ tentar de novo', blink]]);
+  if (state === 'win' && plane.t > 120) showReceipt();
   if (state === 'win' && plane.t > 120) panel([
     ['PARABÉNS!', '#f7a1c4'], ['VOCÊ É UM COVARDE!', '#ffd23f'], ['Dinheiro do Vorcaro:', '#fff'], [milhoes(money), '#7fd27f'], ['Vidas: ' + lives, '#fff'], ['ESPAÇO p/ jogar de novo', blink]]);
 }
