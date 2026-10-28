@@ -80,51 +80,89 @@ const VORCARO_TOP = [
 const VPAL = { ...PAL, h: '#5a4130', b: '#4a3627', m: '#33251a', s: '#f0c49a', t: '#6f7d94' };
 
 // Cavalo Preto (Black Horse): quadrupede de perfil, referencia ao filme
-const CAVALO_FRAMES = [
-[
-  "....................dddddd....",
-  "...................dddddddd...",
-  ".................dddddddddd...",
-  "......ddddd...ddddddddddeddd..",
-  "...ddddddddddddddddddddddddd..",
-  "..dddddddddddddddddddddddddd..",
-  "..ddddddddddddddddddddd.dddd..",
-  "..ddddddddddddddddddddd..ddd..",
-  "..dddddddddddddddddddd........",
-  "..dddddddddddddddddddd........",
-  "..dddddddddddddddddddd........",
-  "..ddddddddddddddddddd.........",
-  "..dddddddd...ddddddd..........",
-  "..ddddddd......ddddd..........",
-  "..ddddddd......ddddd..........",
-  "...ddddd.......ddddd..........",
-  "...dddddd......dddd...........",
-  "...dddddd......dddd...........",
-  "...dddddd......dddd...........",
-  "......ddd......ddd............"
-],
-[
-  "....................dddddd....",
-  "...................dddddddd...",
-  ".................dddddddddd...",
-  "......ddddd...ddddddddddeddd..",
-  "...ddddddddddddddddddddddddd..",
-  "..dddddddddddddddddddddddddd..",
-  "..ddddddddddddddddddddd.dddd..",
-  "..ddddddddddddddddddddd..ddd..",
-  "..dddddddddddddddddddd........",
-  "..dddddddddddddddddddd........",
-  "..dddddddddddddddddddd........",
-  "..ddddddddddddddddddd.........",
-  "..dddddddd...ddddddd..........",
-  ".ddddddd......d..dddd.........",
-  ".ddddddd......d..dddd.........",
-  "..ddddd.......d..dddd.........",
-  "..dddddd......d..ddd..........",
-  "..dddddd......d..ddd..........",
-  "..dddddd......d..ddd..........",
-  ".....ddd......d..dd..........."
-]
+const CAVALO_PARADO = [
+  "................................dd......",
+  "..............................dddd......",
+  "...........................ddddddd......",
+  "..........................dddddddd......",
+  "........................dddddddddd......",
+  ".....................ddddddddddeddd.....",
+  ".......dddddddddd.dddddddddddd.ddddd....",
+  ".....dddddddddddddddddddddddd....ddd....",
+  "....ddddddddddddddddddddddddd.....dd....",
+  "....dddddddddddddddddddddddd............",
+  "....ddddddddddddddddddddddd.............",
+  "....ddddddddddddddddddddddd.............",
+  "....dd.dddddddddddddddddddd.............",
+  "....dd.dddddd.ddddddddddddd.............",
+  "....dd.ddddd.....ddddddddd..............",
+  "....dd.ddddd..........ddd...............",
+  "....dd.dddd...........ddd...............",
+  "....d.dddd...........dddd...............",
+  "....d.dddd...........dddd...............",
+  "......d..d...........dddd...............",
+  "......d..d...........d.d................",
+  "......d..d...........d.d................",
+  "......d..d...........d.d................",
+  "......d..dd..........d.d................",
+  "......dd..d..........dd.d...............",
+  "........................d..............."
+];
+const CAVALO_ANDA = [
+  "................................dd......",
+  "..............................dddd......",
+  "...........................ddddddd......",
+  "..........................dddddddd......",
+  "........................dddddddddd......",
+  ".....................ddddddddddeddd.....",
+  ".......dddddddddd.dddddddddddd.ddddd....",
+  ".....dddddddddddddddddddddddd....ddd....",
+  "....ddddddddddddddddddddddddd.....dd....",
+  "....dddddddddddddddddddddddd............",
+  "....ddddddddddddddddddddddd.............",
+  "....ddddddddddddddddddddddd.............",
+  "....dd.dddddddddddddddddddd.............",
+  "....dd.dddddd.ddddddddddddd.............",
+  "....dd.ddddd.....ddddddddd..............",
+  "....dd.ddddd..........ddd...............",
+  "....dd.dddd...........ddd...............",
+  "...d.dddd.............dddd..............",
+  "...d.dddd.............dddd..............",
+  ".....d..d.............dddd..............",
+  ".....d..d.............d.d...............",
+  ".....d..d.............d.d...............",
+  ".....d..d.............d.d...............",
+  ".....d..dd............d.d...............",
+  ".....dd..d............dd.d..............",
+  ".........................d.............."
+];
+const CAVALO_COICE = [
+  "................................dd......",
+  "..............................dddd......",
+  "...........................ddddddd......",
+  "..........................dddddddd......",
+  "........................dddddddddd......",
+  ".....................ddddddddddeddd.....",
+  ".......dddddddddd.dddddddddddd.ddddd....",
+  ".....dddddddddddddddddddddddd....ddd....",
+  "....ddddddddddddddddddddddddd.....dd....",
+  "....dddddddddddddddddddddddd............",
+  "....ddddddddddddddddddddddd.............",
+  "....ddddddddddddddddddddddd.............",
+  "....dd.dddddddddddddddddddd.............",
+  "....dd.dddddd.ddddddddddddd.............",
+  "....dd.ddddd.....ddddddddd..............",
+  "....dd.ddddd..........ddd...............",
+  ".dd.dd.dddd...........ddd...............",
+  ".dddd................dddd...............",
+  "...dddd..............dddd...............",
+  ".....dddd............dddd...............",
+  ".......dddd..........d.d................",
+  ".........dddd........d.d................",
+  "...........dd........d.d................",
+  ".....................d.d................",
+  ".....................dd.d...............",
+  "........................d..............."
 ];
 const HPAL = { d: '#141414', e: '#f0b04a' };
 const makeJump = (top, pal, tie) => sprite([...top.slice(0, 9), ".snnw" + tie + "wnns..", "s..nnnnnn..s", "...nnnnnn...", "..nn....nn..", ".nn......nn.", ".bb......bb."].slice(0, 16), pal);
@@ -147,9 +185,26 @@ const FERRADURA = sprite([
   "km........mk",
   "kk........kk"
 ], { k: "#1a1a1a", m: "#8f97a3", h: "#d7dee8" });
-const PLAYER_CAVALO = CAVALO_FRAMES.map(f => sprite(f, HPAL));
-const CAVALO = PLAYER_CAVALO[0];
-const PJUMP_CAVALO = PLAYER_CAVALO[1];
+// 4 quadros de passo: desloca pernas da frente e de tras em fases opostas
+function horseFrame(frontDx, hindDx) {
+  const LEG = 17, MID = 15, h = CAVALO_PARADO.length, w = CAVALO_PARADO[0].length;
+  const g = CAVALO_PARADO.map(r => r.split(''));
+  for (let y = LEG; y < h; y++) for (let x = 0; x < w; x++) g[y][x] = '.';
+  for (let y = LEG; y < h; y++) {
+    const row = CAVALO_PARADO[y];
+    for (let x = 0; x < w; x++) {
+      if (row[x] !== 'd') continue;
+      const nx = x + (x >= MID ? frontDx : hindDx);
+      if (nx >= 0 && nx < w) g[y][nx] = 'd';
+    }
+  }
+  return sprite(g.map(r => r.join('')), HPAL);
+}
+const CAVALO_FRAMES = [horseFrame(0, 0), horseFrame(2, -2), horseFrame(1, -1), horseFrame(-1, 1)];
+const PLAYER_CAVALO = CAVALO_FRAMES;
+const CAVALO = CAVALO_FRAMES[0];
+const PJUMP_CAVALO = CAVALO_FRAMES[1];
+const CAVALO_KICK_SPR = sprite(CAVALO_COICE, HPAL);
 const AVATARS = ['flavio', 'vorcaro', 'cavalo'];
 const AVATAR_NAME = { flavio: 'FLÁVIO', vorcaro: 'VORCARO', cavalo: 'BLACK HORSE' };
 let avatar = 'flavio', unlocked = false;
@@ -729,13 +784,17 @@ function drawWorld() {
     drawSprite(LULA, d.x, d.y);
   }
   if (state !== 'win' && (p.inv === 0 || (frame >> 2) % 2)) {
-    const spr = !p.onGround ? PJUMP : Math.abs(p.vx) > 0.3 ? PLAYER[Math.floor(p.anim) % 2] : PLAYER[0];
+    const spr = p.avatar === 'cavalo' && p.snip > 0 ? CAVALO_KICK_SPR
+      : !p.onGround ? PJUMP
+      : Math.abs(p.vx) > 0.3 ? PLAYER[Math.floor(p.anim) % (p.avatar === 'cavalo' ? 4 : 2)] : PLAYER[0];
     if (p.power) {
       // mesma peca do item, virada para o lado que ele encara
       if (p.avatar === 'cavalo') drawSprite(FERRADURA, p.face > 0 ? p.x - 4 : p.x + p.w - 8, p.y + 2, p.face < 0);
       else drawSprite(TESOURA, p.face > 0 ? p.x + p.w - 4 : p.x - 14, p.y + 1, p.face < 0);
-      if (p.snip > 6) {                        // riscos do corte
-        const ax = p.face > 0 ? p.x + p.w + 2 : p.x - 10;
+      if (p.snip > 6) {                        // riscos: na frente para cortar, atras no coice
+        const ax = p.avatar === 'cavalo'
+          ? (p.face > 0 ? p.x - 16 : p.x + p.w + 2)
+          : (p.face > 0 ? p.x + p.w + 2 : p.x - 10);
         rect(ax, p.y + 2, 7, 1, '#fff'); rect(ax + 3, p.y + 6, 7, 1, '#fff'); rect(ax, p.y + 10, 7, 1, '#fff');
       }
     }
