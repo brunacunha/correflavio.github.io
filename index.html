@@ -19,7 +19,7 @@
 <div id="wrap"><canvas id="c" width="384" height="216"></canvas></div>
 <div id="touch">
   <div><button data-k="left">◀</button><button data-k="right">▶</button></div>
-  <div><button data-k="jump">▲</button></div>
+  <div><button data-k="down">▼</button><button data-k="jump">▲</button></div>
 </div>
 <script>
 const W = 384, H = 216, LEVEL = 4000, GROUND = 184;
@@ -155,15 +155,19 @@ function reset() {
 reset(); state = 'title';
 
 // ---------- input ----------
-const keys = { left: false, right: false, jump: false };
+const keys = { left: false, right: false, jump: false, down: false };
 let jumpPressed = false;
-const MAP = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', ArrowUp: 'jump', KeyW: 'jump', Space: 'jump' };
+const MAP = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', ArrowUp: 'jump', KeyW: 'jump', Space: 'jump', ArrowDown: 'down', KeyS: 'down' };
 function press(k, down) {
   if (down && k === 'jump' && !keys.jump) jumpPressed = true;
   keys[k] = down;
   if (down) { initAudio(); if (state !== 'play' && k === 'jump') { if (state !== 'title') reset(); state = 'play'; jumpPressed = false; } }
 }
-addEventListener('keydown', e => { const k = MAP[e.code]; if (k) { e.preventDefault(); press(k, true); } });
+addEventListener('keydown', e => {
+  const k = MAP[e.code];
+  if (k) { e.preventDefault(); press(k, true); }
+  else if (e.code === 'KeyM') { e.preventDefault(); initAudio(); toggleMute(); }
+});
 addEventListener('keyup', e => { const k = MAP[e.code]; if (k) press(k, false); });
 document.querySelectorAll('#touch button').forEach(b => {
   const k = b.dataset.k;
@@ -175,14 +179,21 @@ cv.addEventListener('pointerdown', () => { if (state !== 'play') { press('jump',
 // ---------- audio ----------
 let ac;
 function initAudio() { if (!ac) try { ac = new AudioContext(); } catch (e) {} }
-function beep(f, d = 0.08, type = 'square', slide = 0) {
-  if (!ac) return;
+function beep(f, d = 0.08, type = 'square', slide = 0, force = false) {
+  if (!ac || (muted && !force)) return;
   const o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime;
   o.type = type; o.frequency.setValueAtTime(f, t);
   if (slide) o.frequency.linearRampToValueAtTime(f + slide, t + d);
   g.gain.setValueAtTime(0.08, t); g.gain.exponentialRampToValueAtTime(0.001, t + d);
   o.connect(g).connect(ac.destination); o.start(t); o.stop(t + d);
 }
+// short arpeggio used by pickups, warps and combos
+function jingle(notes, step = 0.06, type = 'square') {
+  notes.forEach((f, i) => setTimeout(() => beep(f, step + 0.04, type), i * step * 1000));
+}
+// "M" liga/desliga todo o som (o título promete isso desde a primeira versão)
+let muted = false;
+function toggleMute() { muted = !muted; beep(muted ? 330 : 660, 0.12, 'triangle', muted ? -120 : 120, true); }
 
 
 
@@ -214,12 +225,25 @@ function update() {
   p.vy = Math.min(p.vy + 0.4, 8);
 
   p.x += p.vx;
-  for (const s of solids) if (hit(p, s)) p.x = p.vx > 0 ? s.x - p.w : s.x + s.w;
+  for (const s of solids) {
+    if (s.plat) continue;              // plataforma se atravessa por baixo
+    if (hit(p, s)) p.x = p.vx > 0 ? s.x - p.w : s.x + s.w;
+  }
   p.x = Math.max(0, p.x);
+  const prevBottom = p.y + p.h;
   p.y += p.vy; p.onGround = false;
-  for (const s of solids) if (hit(p, s)) {
-    if (p.vy > 0) { p.y = s.y - p.h; p.onGround = true; } else p.y = s.y + s.h;
-    p.vy = 0;
+  for (const s of solids) {
+    if (s.plat) {
+      // pisa em cima, mas não bate a cabeça
+      if (p.vy > 0 && prevBottom <= s.y + 1 && p.y + p.h > s.y && p.x + p.w > s.x && p.x < s.x + s.w) {
+        p.y = s.y - p.h; p.onGround = true; p.vy = 0;
+      }
+      continue;
+    }
+    if (hit(p, s)) {
+      if (p.vy > 0) { p.y = s.y - p.h; p.onGround = true; } else p.y = s.y + s.h;
+      p.vy = 0;
+    }
   }
   if (p.inv > 0) p.inv--;
   if (Math.abs(p.vx) > 0.3) p.anim += 0.2;
@@ -419,10 +443,11 @@ function drawPlane(x, y) {
   if (!plane || plane.t < 85) { rect(x + 14, y + 18, 3, 4, '#333'); rect(x + 50, y + 18, 3, 4, '#333'); }
 }
 
-function drawSprite(img, x, y, flip) {
+function drawSprite(img, x, y, flip, s = 1) {
   x = Math.round(x); y = Math.round(y);
-  if (flip) { ctx.save(); ctx.scale(-1, 1); ctx.drawImage(img, -x - img.width, y); ctx.restore(); }
-  else ctx.drawImage(img, x, y);
+  const w = img.width * s, h = img.height * s;
+  if (flip) { ctx.save(); ctx.scale(-1, 1); ctx.drawImage(img, -x - w, y, w, h); ctx.restore(); }
+  else ctx.drawImage(img, x, y, w, h);
 }
 
 function drawHUD() {
@@ -438,8 +463,59 @@ function drawHUD() {
 }
 
 function panel(lines) {
-  rect(40, 46, W - 80, 120, '#000a');
-  lines.forEach(([s, c], i) => text(s, W / 2, 70 + i * 16, c));
+  const top = 38, h = 136, step = 15;
+  rect(36, top, W - 72, h, '#000a');
+  // centraliza o bloco de texto dentro do painel
+  const y0 = top + (h - (lines.length - 1) * step) / 2 + 3;
+  lines.forEach(([s, c], i) => text(s, W / 2, y0 + i * step, c));
+}
+
+// ---------- comprovante de fuga ----------
+function hideReceipt() {
+  receiptShown = false;
+  const a = document.getElementById('recibo');
+  if (a) a.style.display = 'none';
+}
+
+function buildReceipt() {
+  const c = document.createElement('canvas');
+  c.width = 320; c.height = 230;
+  const g = c.getContext('2d');
+  g.imageSmoothingEnabled = false;
+  g.fillStyle = '#f6f1e4'; g.fillRect(0, 0, 320, 230);
+  g.fillStyle = '#1a1a1a'; g.fillRect(0, 0, 320, 4); g.fillRect(0, 226, 320, 4);
+  const T = (s, x, y, size, col, align = 'left') => {
+    g.font = size + "px 'Press Start 2P', monospace";
+    g.textAlign = align;
+    g.fillStyle = col;
+    g.fillText(s, x, y);
+  };
+  T('COMPROVANTE', 16, 34, 12, '#1a1a1a');
+  T('DE FUGA', 16, 52, 12, '#1a1a1a');
+  g.drawImage(avatar === 'vorcaro' ? PLAYER_VORCARO[0] : PLAYER_FLAVIO[0], 250, 18, 48, 64);
+  const secs = Math.floor(framesPlayed / 60);
+  const mm = String(Math.floor(secs / 60)).padStart(2, '0');
+  const ss = String(secs % 60).padStart(2, '0');
+  T('FUGITIVO: ' + (avatar === 'vorcaro' ? 'VORCARO' : 'FLAVIO'), 16, 96, 8, '#3a3a3a');
+  T('DESTINO: MIAMI', 16, 116, 8, '#3a3a3a');
+  T('TEMPO: ' + mm + ':' + ss, 16, 136, 8, '#3a3a3a');
+  T('DINHEIRO:', 16, 162, 8, '#3a3a3a');
+  T('US$ ' + money + ' MI', 16, 188, 14, '#1b7f3a');
+  g.save(); g.translate(236, 178); g.rotate(-0.16);
+  g.strokeStyle = '#c8323c'; g.lineWidth = 3; g.strokeRect(-58, -20, 116, 40);
+  T('RECEBIDO', 0, 8, 14, '#c8323c', 'center');
+  g.restore();
+  T('corre, flavio', 16, 216, 6, '#8a8578');
+  return c.toDataURL('image/png');
+}
+
+function showReceipt() {
+  if (receiptShown) return;
+  receiptShown = true;
+  const a = document.getElementById('recibo');
+  if (!a) return;
+  try { a.href = buildReceipt(); } catch (e) { return; }
+  a.style.display = 'block';
 }
 
 function draw() {
@@ -449,7 +525,8 @@ function draw() {
   const blink = (frame >> 5) % 2 ? '#fff' : '#ffd23f';
   if (state === 'title') panel([
     ['CORRE, FLÁVIO!', '#ffd23f'], ['Perdeu a eleição...', '#fff'], ['Fuja até Miami!', '#fff'],
-    ['← → mover  ↑ pular', '#9fd6ff'], ['M liga/desliga música', '#9fd6ff'], ['ESPAÇO p/ começar', blink]]);
+    ['← → ou A D  mover', '#9fd6ff'], ['↑/W pula   ↓/S corta', '#9fd6ff'],
+    ['ESPAÇO p/ começar', blink]]);
   if (state === 'over') panel([
     ['PEGO PELA PF!', '#e63946'], ['', ''], ['Juntou ' + milhoes(money), '#7fd27f'], ['', ''], ['ESPAÇO p/ tentar de novo', blink]]);
   if (state === 'win' && plane.t > 120) panel([
