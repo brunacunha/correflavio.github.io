@@ -65,19 +65,19 @@ const LEGS = [
 // Vorcaro, o banqueiro: cabelo penteado para tras, barba cheia e terno
 const VORCARO_TOP = [
   "...kkkkkk...",
-  "..khhhhhhk..",
+  ".khhhhhhhhk.",
+  ".khhhhhhhhk.",
   "..khssssshk.",
   "..ksessesk..",
-  "..ssssssss..",
   "..sbbmmbbs..",
   "...sbbbbs...",
-  "..nnwttwnn..",
+  "..nnnwwnnn..",
   ".nnnwttwnnn.",
   ".snnwttwnns.",
   ".s.nwttwn.s.",
-  "...nnnnnn...",
+  "...nnnnnn..."
 ];
-const VPAL = { ...PAL, h: '#5a4130', b: '#4a3627', m: '#33251a', s: '#f0c49a', t: '#7d8aa0' };
+const VPAL = { ...PAL, h: '#5a4130', b: '#4a3627', m: '#33251a', s: '#f0c49a', t: '#6f7d94' };
 
 // Cavalo Preto (Black Horse): quadrupede de perfil, referencia ao filme
 const CAVALO_FRAMES = [
@@ -127,11 +127,11 @@ const CAVALO_FRAMES = [
 ]
 ];
 const HPAL = { d: '#141414', e: '#f0b04a' };
-const makeJump = (top, pal) => sprite([...top.slice(0, 9), ".snnwgwnns..", "s..nnnnnn..s", "...nnnnnn...", "..nn....nn..", ".nn......nn.", ".bb......bb."].slice(0, 16), pal);
+const makeJump = (top, pal, tie) => sprite([...top.slice(0, 9), ".snnw" + tie + "wnns..", "s..nnnnnn..s", "...nnnnnn...", "..nn....nn..", ".nn......nn.", ".bb......bb."].slice(0, 16), pal);
 const PLAYER_FLAVIO = LEGS.map(l => sprite([...TOP, ...l], PAL));
-const PJUMP_FLAVIO = makeJump(TOP, PAL);
+const PJUMP_FLAVIO = makeJump(TOP, PAL, 'g');
 const PLAYER_VORCARO = LEGS.map(l => sprite([...VORCARO_TOP, ...l], VPAL));
-const PJUMP_VORCARO = makeJump(VORCARO_TOP, VPAL);
+const PJUMP_VORCARO = makeJump(VORCARO_TOP, VPAL, 't');
 const FERRADURA = sprite([
   "..kkkkkkkk..",
   ".kmmmmmmmmk.",
