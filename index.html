@@ -452,7 +452,14 @@ function press(k, down) {
     return;
   }
   keys[k] = down;
-  if (down) { initAudio(); if (state !== 'play' && k === 'jump') { reset(); state = 'play'; jumpPressed = false; } }
+  if (down) {
+    initAudio();
+    if (state !== 'play' && k === 'jump') {
+      reset();
+      state = state === 'win' ? 'title' : 'play';   // vitoria volta ao menu p/ trocar de avatar
+      jumpPressed = false;
+    }
+  }
 }
 addEventListener('keydown', e => {
   const k = MAP[e.code];
@@ -1040,7 +1047,7 @@ function draw() {
   if (state === 'win' && plane.t > 120) panel([
     ['PARABÉNS!', '#f7a1c4'], ['VOCÊ É UM COVARDE!', '#ffd23f'], ['Dinheiro do Vorcaro:', '#fff'],
     [milhoes(money), '#7fd27f'], ['AVATARES LIBERADOS!', '#ffd23f'],
-    ['← → troca no menu', '#9fd6ff'], ['ESPAÇO p/ jogar de novo', blink]]);
+    ['← → troca no menu', '#9fd6ff'], ['ESPAÇO p/ ir ao menu', blink]]);
 }
 
 // ---------- loop ----------
