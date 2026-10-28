@@ -120,6 +120,42 @@ const LULA = sprite([
   ".....BB.....",
 ], { ...PAL, h: '#9a9a9a', B: '#d4d4d4', o: '#d08a60' });
 
+// "bala de canhão" do Mario, versão pátria: a cabeça calva (e brilhante)
+// do Alexandre de Moraes, de lado, voando sem canhão nenhum.
+const MORAES = sprite([
+  ".........kkkkkk.........",
+  "......kkksssssskkk......",
+  "...kkksssssssssssskkk...",
+  "..kkSssssssssssssssskk..",
+  ".kkSSSssssssssssssssokk.",
+  ".kkSSSssssssssssssssokk.",
+  ".kkSSsssssssssssssssokk.",
+  ".kksssssssssssssssssokk.",
+  ".kksssssssssssssssssokk.",
+  "kskssssssssssssssssssksk",
+  "ksksbbbbssssssssbbbbsksk",
+  "kskssssssssssssssssssksk",
+  ".kksssssssssssssssssokk.",
+  ".kksssssssssssssssssokk.",
+  "ksksseesssssssssseessksk",
+  "ksksssssssssossssssssksk",
+  "kskssssssssoossssssssksk",
+  "ksksssssssossosssssssksk",
+  "kskssssssssssssssssssksk",
+  "kskssssssssssssssssssksk",
+  "ksksssssssmmmmsssssssksk",
+  "kskssssssssssssssssssksk",
+  "kskssssssssssssssssssksk",
+  "kskssssssssssssssssssksk",
+  "kskssssssssssssssssssksk",
+  "kskssssssssssssssssssksk",
+  "kskssssssssssssssssssksk",
+  ".kksssssssssssssssssskk.",
+  "..kkppppwwwwwwwwppppkk..",
+  "...kkpppwwwnnwwwpppkk..."
+], { ...PAL, s: '#e8b388', S: '#ffd9b5', o: '#b57d5a', b: '#1a1410', e: '#120f0d', p: '#1b1e26', w: '#e8eef5', n: '#1c2a4a', m: '#8a3f33' });
+
+
 // ---------- level ----------
 const solids = [];
 const G = (a, b) => solids.push({ x: a, y: GROUND, w: b - a, h: 40 });
@@ -135,7 +171,11 @@ P(3300, 140, 64); P(3500, 120, 64); P(3640, 96, 48);
 const CHECKPOINTS = [0, 1050, 1850, 2540, 3040];
 const PLANE_X = 3870;
 
-let p, enemies, papers, coins, lives, money, state, camX, frame, plane;   // money is in millions
+// a bala careca não sai de cano nenhum: ela simplesmente aparece na borda direita
+const BULLET = { w: 14, h: 12, y: GROUND - 24, vx: -1.9, every: 150, from: 700, to: PLANE_X - 140 };
+
+let p, enemies, papers, coins, items, bullets, lives, money, state, camX, frame, plane;   // money is in millions
+let framesPlayed = 0, receiptShown = false;
 const milhoes = m => 'US$ ' + m + (m === 1 ? ' milhão' : ' milhões');
 
 function reset() {
@@ -263,6 +303,32 @@ function update() {
     if (hit(p, e)) {
       if (p.vy > 0 && p.y + p.h - e.y < 8) { e.alive = false; p.vy = -6; money += 5; beep(660, 0.12, 'square', -300); }
       else hurt();
+    }
+  }
+
+  // a bala careca não sai de cano nenhum: aparece na borda direita e vem reta
+  if (p.x > BULLET.from && p.x < BULLET.to && frame % BULLET.every === 0 && bullets.length < 3) {
+    bullets.push({ x: camX + W + 16, y: BULLET.y, w: BULLET.w, h: BULLET.h, vx: BULLET.vx, alive: true });
+  }
+
+  for (const b of bullets) {
+    if (!b.alive) continue;
+    b.x += b.vx;
+    if (b.x < camX - 60) { b.alive = false; continue; }
+    if (hit(p, b)) {
+      if (p.vy > 0 && p.y + p.h - b.y < 12) {
+        b.alive = false; p.vy = -5.5; money += 3; beep(520, 0.1, 'square', -260);
+      } else hurt();
+    }
+  }
+
+  for (const it of items) {
+    if (it.got) continue;
+    it.t++; it.y = it.y0 + Math.sin(it.t / 20) * 4;
+    if (hit(p, { x: it.x, y: it.y, w: 12, h: 12 })) {
+      it.got = true;
+      if (!p.scissors) { p.scissors = true; jingle([784, 1046, 1318], 0.05); }
+      else { money += 10; jingle([784, 1046], 0.05); }
     }
   }
   for (const d of papers) {
@@ -442,6 +508,14 @@ function drawWorld() {
   for (const c of coins) if (!c.got) {
     const y = c.y + Math.sin((frame + c.x) / 10) * 2;
     rect(c.x, y, 9, 6, '#2e8b3e'); rect(c.x + 1, y + 1, 7, 4, '#7fd27f'); rect(c.x + 4, y + 1, 1, 4, '#1e5e2a');
+  }
+  for (const b of bullets) if (b.alive) {
+    // a cabeça voa deitada, com a careca virada para a frente
+    ctx.save();
+    ctx.translate(Math.round(b.x + b.w / 2), Math.round(b.y + b.h / 2));
+    ctx.rotate(b.vx > 0 ? Math.PI / 2 : -Math.PI / 2);
+    ctx.drawImage(MORAES, -Math.round(MORAES.width / 2), -Math.round(MORAES.height / 2));
+    ctx.restore();
   }
   for (const e of enemies) if (e.alive) drawSprite(POLICE[(frame >> 4) & 1], e.x - 1, e.y, e.dir < 0);
   for (const d of papers) if (d.on) {
