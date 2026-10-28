@@ -88,8 +88,8 @@ const VPAL = { ...PAL, h: '#5a4130', b: '#4a3627', m: '#33251a', s: '#f0c49a', t
 // Eduardo Bananinha: entrada alta, barba cheia e gravata vermelha
 const EDUARDO_TOP = [
   "...kkkkkk...",
-  "..khhhhhhk..",
-  ".khsssssshk.",
+  "..kSsssssk..",
+  ".kSsssssssk.",
   "..kssssssk..",
   "..ksessesk..",
   "..sbbmmbbs..",
@@ -98,9 +98,9 @@ const EDUARDO_TOP = [
   ".nnnwrrwnnn.",
   ".snnwrrwnns.",
   ".s.nwrrwn.s.",
-  "...nnnnnn...",
+  "...nnnnnn..."
 ];
-const EPAL = { ...PAL, h: '#2a201a', b: '#2a201a', m: '#171310', s: '#f2c9a4' };
+const EPAL = { ...PAL, S: '#ffe0c4', b: '#2a201a', m: '#171310', s: '#f2c9a4' };
 
 // banana (power-up) e casca (armadilha no chao)
 const BANANA = sprite([
@@ -118,14 +118,16 @@ const BANANA = sprite([
   "kkk........."
 ], { k: '#2b1d14', y: '#ffd23f', b: '#8a6a20' });
 const CASCA = sprite([
-  "............",
-  "..k......k..",
-  ".kyk....kyk.",
-  "kyyyk..kyyyk",
-  ".kyyykkyyyk.",
-  "..kyyyyyyk..",
-  "...kyyyyk...",
-  "....kkkk....",
+  "..............",
+  "..............",
+  "..............",
+  "kk.........kkk",
+  "bkk........kbb",
+  "yykk......kkyy",
+  "kyykkkkkkkkyyk",
+  "kkyyyyyyyyyykk",
+  ".kkyyyyyyyykk.",
+  "..kkkkbbkkkk.."
 ], { k: '#2b1d14', y: '#ffd23f', b: '#8a6a20' });
 
 const CAVALO_PARADO = [
