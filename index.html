@@ -13,10 +13,15 @@
   #touch div{display:flex;gap:12px}
   #touch button{pointer-events:auto;width:64px;height:64px;border-radius:12px;border:3px solid #fff8;background:#0006;color:#fff;font:16px 'Press Start 2P',monospace}
   @media (pointer:coarse){#touch{display:flex}}
-  #recibo{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);display:none;z-index:9;
-    padding:10px 14px;border:3px solid #ffd23f;border-radius:8px;background:#000d;color:#ffd23f;
-    font:10px 'Press Start 2P',monospace;text-decoration:none;cursor:pointer}
-  #recibo:hover{background:#ffd23f;color:#1a1a2e}
+  #recibo{position:fixed;left:50%;bottom:15%;transform:translateX(-50%);display:none;z-index:9;
+    padding:16px 22px;border:4px solid #ffd23f;border-radius:10px;background:#000e;color:#ffd23f;
+    font:14px 'Press Start 2P',monospace;letter-spacing:1px;text-decoration:none;cursor:pointer;
+    box-shadow:0 0 0 4px #000a;animation:pisca .9s steps(1,end) infinite}
+  @keyframes pisca{
+    0%,49%{background:#000e;color:#ffd23f;border-color:#ffd23f}
+    50%,100%{background:#ffd23f;color:#1a1a2e;border-color:#fff}
+  }
+  #recibo:hover{background:#ffd23f;color:#1a1a2e;animation:none}
 </style>
 </head>
 <body>
