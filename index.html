@@ -869,9 +869,8 @@ function drawWorld() {
       : Math.abs(p.vx) > 0.3 ? PLAYER[Math.floor(p.anim) % (p.avatar === 'cavalo' ? 4 : 2)] : PLAYER[0];
     if (p.power) {
       // mesma peca do item, virada para o lado que ele encara
-      if (p.avatar === 'cavalo') drawSprite(FERRADURA, p.face > 0 ? p.x - 4 : p.x + p.w - 8, p.y + 2, p.face < 0);
-      else if (p.avatar === 'eduardo') drawSprite(BANANA, p.face > 0 ? p.x + p.w - 2 : p.x - 10, p.y + p.h - 15, p.face < 0);
-      else drawSprite(TESOURA, p.face > 0 ? p.x + p.w - 4 : p.x - 14, p.y + 1, p.face < 0);
+      if (p.avatar === 'eduardo') drawSprite(BANANA, p.face > 0 ? p.x + p.w - 2 : p.x - 10, p.y + p.h - 15, p.face < 0);
+      else if (p.avatar !== 'cavalo') drawSprite(TESOURA, p.face > 0 ? p.x + p.w - 4 : p.x - 14, p.y + 1, p.face < 0);
       if (p.snip > 6 && p.avatar !== 'eduardo') {                        // riscos: na frente para cortar, atras no coice
         const ax = p.avatar === 'cavalo'
           ? (p.face > 0 ? p.x - 16 : p.x + p.w + 2)
