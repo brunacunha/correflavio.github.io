@@ -156,6 +156,26 @@ const MORAES = sprite([
 ], { ...PAL, s: '#e8b388', S: '#ffd9b5', o: '#b57d5a', b: '#1a1410', e: '#120f0d', p: '#1b1e26', w: '#e8eef5', n: '#1c2a4a', m: '#8a3f33' });
 
 
+// tesoura do tesouraço: contorno escuro para destacar do céu
+const TESOURA = sprite([
+  "..kkk.......kkk...",
+  "..kakk.....kkak...",
+  "..kkakk...kkakk...",
+  "...kkakk.kkakk....",
+  "....kkak.kakk.....",
+  ".....kakkkak......",
+  ".....kkakakk......",
+  "......kkrkk.......",
+  ".....kkrkrkk......",
+  "....kkrkkkrkk.....",
+  "kkkkkrkk.kkrkkkk..",
+  "krrrrkk...krrrrk..",
+  "krkrrk....krkrrk..",
+  "krkkrk....krkkrk..",
+  "krrrrk....krrrrk..",
+  "kkkkkk....kkkkkk.."
+], { k: '#1a1a1a', a: '#e9eef5', r: '#c8323c' });
+
 // ---------- level ----------
 const solids = [];
 const G = (a, b) => solids.push({ x: a, y: GROUND, w: b - a, h: 40 });
@@ -179,7 +199,7 @@ let framesPlayed = 0, receiptShown = false;
 const milhoes = m => 'US$ ' + m + (m === 1 ? ' milhão' : ' milhões');
 
 function reset() {
-  p = { x: 30, y: 120, w: 10, h: 16, vx: 0, vy: 0, onGround: false, face: 1, inv: 0, coyote: 0, anim: 0 };
+  p = { x: 30, y: 120, w: 10, h: 16, vx: 0, vy: 0, onGround: false, face: 1, inv: 0, coyote: 0, anim: 0, scissors: false, snip: 0 };
   enemies = [[400, 300, 540], [850, 660, 990], [1240, 1080, 1290], [1500, 1400, 1640], [1720, 1600, 1790],
              [3250, 3100, 3400], [3450, 3350, 3600], [3700, 3600, 3820]]
     .map(([x, min, max]) => ({ x, y: GROUND - 16, w: 10, h: 16, min, max, dir: -1, alive: true }));
@@ -190,6 +210,10 @@ function reset() {
     if (s) coins.push({ x, y: s.y - 22, got: false });
   }
   [[320, 120], [340, 120], [1200, 104], [1220, 104], [1700, 84], [3660, 76]].forEach(([x, y]) => coins.push({ x, y, got: false }));
+  // power-up: a tesoura do tesouraço
+  items = [[780, 112], [1712, 88], [2500, 120], [3400, 118]]
+    .map(([x, y0]) => ({ x, y0, y: y0, t: 0, got: false }));
+  bullets = [];
   lives = 3; money = 0; camX = 0; frame = 0; plane = null;
 }
 reset(); state = 'title';
@@ -240,8 +264,15 @@ function toggleMute() { muted = !muted; beep(muted ? 330 : 660, 0.12, 'triangle'
 // ---------- update ----------
 const hit = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 
+// a tesoura é o power-up: quem está com ela aguenta um hit e pode cortar
 function hurt() {
   if (p.inv > 0) return;
+  if (p.scissors) { p.scissors = false; p.inv = 90; p.vy = -4; beep(300, 0.22, 'square', -90); return; }
+  if (p.avatar === 'vorcaro' && money > 0) {
+    money = 0; p.liq = 120; p.inv = 90; p.vy = -5;
+    beep(170, 0.32, 'sawtooth', -110);
+    return;
+  }
   lives--; p.inv = 90; p.vy = -5; p.vx = -p.face * 3;
   beep(200, 0.3, 'sawtooth', -150);
   if (lives <= 0) state = 'over';
@@ -296,6 +327,16 @@ function update() {
     p.x = cp + 10; p.y = 100; p.vx = p.vy = 0; p.inv = 60;
   }
 
+  // tesoura: ↓ corta o que estiver na frente (carecas, PF e processos)
+  if (p.snip > 0) p.snip--;
+  if (keys.down && p.scissors && p.snip === 0) { p.snip = 12; beep(1400, 0.04, 'square', -700); }
+  if (p.snip > 6) {
+    const cut = { x: p.face > 0 ? p.x + p.w : p.x - 20, y: p.y - 2, w: 20, h: p.h + 4 };
+    for (const e of enemies) if (e.alive && hit(cut, e)) { e.alive = false; money += 5; beep(880, 0.07, 'square', -400); }
+    for (const b of bullets) if (b.alive && hit(cut, b)) { b.alive = false; money += 3; beep(980, 0.06, 'square', -300); }
+    for (const d of papers) if (d.on && !d.dead && hit(cut, d)) { d.dead = true; money += 3; beep(980, 0.06, 'square', -300); }
+  }
+
   for (const e of enemies) {
     if (!e.alive) continue;
     e.x += e.dir * 0.5;
@@ -332,6 +373,7 @@ function update() {
     }
   }
   for (const d of papers) {
+    if (d.dead) continue;
     if (!d.on && d.x - camX < W + 20) d.on = true;
     if (!d.on) continue;
     d.t++; d.x -= 0.9; d.y = d.y0 + Math.sin(d.t / 18) * 14;
@@ -509,6 +551,7 @@ function drawWorld() {
     const y = c.y + Math.sin((frame + c.x) / 10) * 2;
     rect(c.x, y, 9, 6, '#2e8b3e'); rect(c.x + 1, y + 1, 7, 4, '#7fd27f'); rect(c.x + 4, y + 1, 1, 4, '#1e5e2a');
   }
+  for (const it of items) if (!it.got) drawItem(it, Math.round(it.y));
   for (const b of bullets) if (b.alive) {
     // a cabeça voa deitada, com a careca virada para a frente
     ctx.save();
@@ -518,7 +561,7 @@ function drawWorld() {
     ctx.restore();
   }
   for (const e of enemies) if (e.alive) drawSprite(POLICE[(frame >> 4) & 1], e.x - 1, e.y, e.dir < 0);
-  for (const d of papers) if (d.on) {
+  for (const d of papers) if (d.on && !d.dead) {
     const up = (frame >> 3) % 2;   // flapping wings
     rect(d.x - 5, d.y + 3 - up * 2, 5, 3, '#fff'); rect(d.x - 3, d.y + 6 - up * 2, 3, 2, '#fff');
     rect(d.x + 12, d.y + 3 - up * 2, 5, 3, '#fff'); rect(d.x + 12, d.y + 6 - up * 2, 3, 2, '#fff');
@@ -526,6 +569,14 @@ function drawWorld() {
   }
   if (state !== 'win' && (p.inv === 0 || (frame >> 2) % 2)) {
     const spr = !p.onGround ? PJUMP : Math.abs(p.vx) > 0.3 ? PLAYER[Math.floor(p.anim) % 2] : PLAYER[0];
+    if (p.scissors) {
+      // mesma tesoura do item, virada para o lado que ele encara
+      drawSprite(TESOURA, p.face > 0 ? p.x + p.w - 4 : p.x - 14, p.y + 1, p.face < 0);
+      if (p.snip > 6) {                        // riscos do corte
+        const ax = p.face > 0 ? p.x + p.w + 2 : p.x - 10;
+        rect(ax, p.y + 2, 7, 1, '#fff'); rect(ax + 3, p.y + 6, 7, 1, '#fff'); rect(ax, p.y + 10, 7, 1, '#fff');
+      }
+    }
     drawSprite(spr, p.x - 1, p.y, p.face < 0);
   }
   ctx.restore();
@@ -566,11 +617,14 @@ function drawSprite(img, x, y, flip, s = 1) {
   else ctx.drawImage(img, x, y, w, h);
 }
 
+function drawItem(it, y) { drawSprite(TESOURA, it.x - 2, y - 2); }
+
 function drawHUD() {
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 5; i++) {
     const c = i < lives ? '#e63946' : '#0006', x = 8 + i * 12;
     rect(x, 9, 3, 2, c); rect(x + 4, 9, 3, 2, c); rect(x - 1, 10, 9, 3, c); rect(x, 13, 7, 2, c); rect(x + 2, 15, 3, 2, c);
   }
+  if (p.scissors) text('TESOURA', 8, 26, '#ffd23f', 'left');
   text('US$ ' + money + ' MI', W - 8, 16, '#7fd27f', 'right');
   // progress bar
   const bx = 72, bw = W - 200, prog = Math.min(1, p.x / PLANE_X);   // leaves room on the right for MIA + money
