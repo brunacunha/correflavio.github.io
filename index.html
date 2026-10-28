@@ -78,21 +78,66 @@ const VORCARO_TOP = [
   "...nnnnnn...",
 ];
 const VPAL = { ...PAL, h: '#5a4130', b: '#4a3627', m: '#33251a', s: '#f0c49a', t: '#7d8aa0' };
+
+// Cavalo Preto (Black Horse): quadrupede de perfil, referencia ao filme
+const CAVALO_ROWS = [
+  "........................d.....",
+  ".....................dddd.....",
+  "....................dddddd....",
+  "..................dddddded....",
+  ".......ddd.....dddddddddddd...",
+  "....dddddddddddddddddd...dd...",
+  "...ddddddddddddddddddd....d...",
+  "...dddddddddddddddddd.........",
+  "...dddddddddddddddddd.........",
+  "...dddddddddddddddddd.........",
+  "...d.dddd..ddddddddd..........",
+  "...d.dddd.....d.ddd...........",
+  "...d.ddd........ddd...........",
+  "...ddddd........ddd...........",
+  "....ddd.........ddd...........",
+  "....d.d.........dd............",
+  "....d.d.........dd............",
+  "....d.dd........dd............",
+  ".......d........d.............",
+  ".............................."
+];
+const HPAL = { d: '#141414', e: '#f0b04a' };
 const makeJump = (top, pal) => sprite([...top.slice(0, 9), ".snnwgwnns..", "s..nnnnnn..s", "...nnnnnn...", "..nn....nn..", ".nn......nn.", ".bb......bb."].slice(0, 16), pal);
 const PLAYER_FLAVIO = LEGS.map(l => sprite([...TOP, ...l], PAL));
 const PJUMP_FLAVIO = makeJump(TOP, PAL);
 const PLAYER_VORCARO = LEGS.map(l => sprite([...VORCARO_TOP, ...l], VPAL));
 const PJUMP_VORCARO = makeJump(VORCARO_TOP, VPAL);
+const FERRADURA = sprite([
+  "..kkkkkkkk..",
+  ".kmmmmmmmmk.",
+  "kmm......mmk",
+  "kmh......hmk",
+  "km........mk",
+  "km........mk",
+  "km........mk",
+  "km........mk",
+  "km........mk",
+  "km........mk",
+  "km........mk",
+  "km........mk",
+  "kk........kk"
+], { k: "#1a1a1a", m: "#8f97a3", h: "#d7dee8" });
+const CAVALO = sprite(CAVALO_ROWS, HPAL);
+const PLAYER_CAVALO = [CAVALO, CAVALO];
+const PJUMP_CAVALO = CAVALO;
+const AVATARS = ['flavio', 'vorcaro', 'cavalo'];
+const AVATAR_NAME = { flavio: 'FLÁVIO', vorcaro: 'VORCARO', cavalo: 'BLACK HORSE' };
 let avatar = 'flavio', unlocked = false;
 try {
   unlocked = localStorage.getItem('correflavio.unlocked') === '1';
   const saved = localStorage.getItem('correflavio.avatar');
-  if (saved === 'vorcaro' || saved === 'flavio') avatar = saved;
+  if (AVATARS.includes(saved)) avatar = saved;
 } catch (e) {}
 let PLAYER = PLAYER_FLAVIO, PJUMP = PJUMP_FLAVIO;
 function applyAvatar() {
-  PLAYER = avatar === 'vorcaro' ? PLAYER_VORCARO : PLAYER_FLAVIO;
-  PJUMP = avatar === 'vorcaro' ? PJUMP_VORCARO : PJUMP_FLAVIO;
+  PLAYER = avatar === 'vorcaro' ? PLAYER_VORCARO : avatar === 'cavalo' ? PLAYER_CAVALO : PLAYER_FLAVIO;
+  PJUMP = avatar === 'vorcaro' ? PJUMP_VORCARO : avatar === 'cavalo' ? PJUMP_CAVALO : PJUMP_FLAVIO;
 }
 applyAvatar();
 // Polícia Federal agent: black cap and uniform, yellow "PF" lettering
@@ -233,7 +278,7 @@ let framesPlayed = 0, receiptShown = false;
 const milhoes = m => 'US$ ' + m + (m === 1 ? ' milhão' : ' milhões');
 
 function reset() {
-  p = { x: 30, y: 120, w: 10, h: 16, vx: 0, vy: 0, onGround: false, face: 1, inv: 0, coyote: 0, anim: 0, scissors: false, snip: 0, avatar, cdb: 0, liq: 0 };
+  p = { x: 30, y: 120, w: 10, h: 16, vx: 0, vy: 0, onGround: false, face: 1, inv: 0, coyote: 0, anim: 0, power: false, snip: 0, avatar, cdb: 0, liq: 0 };
   enemies = [[400, 300, 540], [850, 660, 990], [1240, 1080, 1290], [1500, 1400, 1640], [1720, 1600, 1790],
              [3250, 3100, 3400], [3450, 3350, 3600], [3700, 3600, 3820]]
     .map(([x, min, max]) => ({ x, y: GROUND - 16, w: 10, h: 16, min, max, dir: -1, alive: true }));
@@ -260,7 +305,7 @@ const MAP = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right
 function press(k, down) {
   if (down && k === 'jump' && !keys.jump) jumpPressed = true;
   if (down && state === 'title' && unlocked && (k === 'left' || k === 'right')) {
-    avatar = avatar === 'flavio' ? 'vorcaro' : 'flavio';
+    avatar = AVATARS[(AVATARS.indexOf(avatar) + (k === 'right' ? 1 : AVATARS.length - 1)) % AVATARS.length];
     applyAvatar();
     try { localStorage.setItem('correflavio.avatar', avatar); } catch (e) {}
     beep(k === 'right' ? 784 : 659, 0.07);
@@ -309,7 +354,7 @@ const hit = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a
 // a tesoura é o power-up: quem está com ela aguenta um hit e pode cortar
 function hurt() {
   if (p.inv > 0) return;
-  if (p.scissors) { p.scissors = false; p.inv = 90; p.vy = -4; beep(300, 0.22, 'square', -90); return; }
+  if (p.power) { p.power = false; p.inv = 90; p.vy = -4; beep(300, 0.22, 'square', -90); return; }
   if (p.avatar === 'vorcaro' && money > 0) {
     money = 0; p.liq = 120; p.inv = 90; p.vy = -5;
     beep(170, 0.32, 'sawtooth', -110);
@@ -330,9 +375,10 @@ function update() {
 
   const dir = keys.right - keys.left;
   if (dir) p.face = dir;
-  p.vx += (dir * 2 - p.vx) * 0.25;
+  const spd = p.avatar === 'cavalo' ? 2.7 : 2;
+  p.vx += (dir * spd - p.vx) * 0.25;
   p.coyote = p.onGround ? 6 : p.coyote - 1;
-  if (jumpPressed && p.coyote > 0) { p.vy = -7.6; p.coyote = 0; beep(440, 0.1, 'square', 300); }
+  if (jumpPressed && p.coyote > 0) { p.vy = p.avatar === 'cavalo' ? -8.4 : -7.6; p.coyote = 0; beep(440, 0.1, 'square', 300); }
   jumpPressed = false;
   if (!keys.jump && p.vy < -3) p.vy = -3;
   p.vy = Math.min(p.vy + 0.4, 8);
@@ -370,11 +416,14 @@ function update() {
     p.x = cp + 10; p.y = 100; p.vx = p.vy = 0; p.inv = 60;
   }
 
-  // tesoura: ↓ corta o que estiver na frente (carecas, PF e processos)
+  // tesoura corta na frente; o cavalo da coice para tras
   if (p.snip > 0) p.snip--;
-  if (keys.down && p.scissors && p.snip === 0) { p.snip = 12; beep(1400, 0.04, 'square', -700); }
+  const canStrike = p.power;
+  if (keys.down && canStrike && p.snip === 0) { p.snip = 12; beep(p.avatar === 'cavalo' ? 220 : 1400, 0.05, 'square', p.avatar === 'cavalo' ? -90 : -700); }
   if (p.snip > 6) {
-    const cut = { x: p.face > 0 ? p.x + p.w : p.x - 20, y: p.y - 2, w: 20, h: p.h + 4 };
+    const cut = p.avatar === 'cavalo'
+      ? { x: p.face > 0 ? p.x - 24 : p.x + p.w, y: p.y - 2, w: 24, h: p.h + 4 }
+      : { x: p.face > 0 ? p.x + p.w : p.x - 20, y: p.y - 2, w: 20, h: p.h + 4 };
     for (const e of enemies) if (e.alive && hit(cut, e)) { e.alive = false; money += 5; beep(880, 0.07, 'square', -400); }
     for (const b of bullets) if (b.alive && hit(cut, b)) { b.alive = false; money += 3; beep(980, 0.06, 'square', -300); }
     for (const d of papers) if (d.on && !d.dead && hit(cut, d)) { d.dead = true; money += 3; beep(980, 0.06, 'square', -300); }
@@ -407,12 +456,12 @@ function update() {
   }
 
   for (const it of items) {
-    if (it.got) continue;
+    if (it.got || p.avatar === 'vorcaro') continue;   // Vorcaro nao tem power-up
     it.t++; it.y = it.y0 + Math.sin(it.t / 20) * 4;
     if (hit(p, { x: it.x, y: it.y, w: 12, h: 12 })) {
       it.got = true;
-      if (!p.scissors) { p.scissors = true; jingle([784, 1046, 1318], 0.05); }
-      else { money += 10; jingle([784, 1046], 0.05); }
+      if (p.power) { money += 10; jingle([784, 1046], 0.05); }
+      else { p.power = true; jingle([784, 1046, 1318], 0.05); }
     }
   }
   for (const d of papers) {
@@ -606,7 +655,7 @@ function drawWorld() {
     const y = c.y + Math.sin((frame + c.x) / 10) * 2;
     rect(c.x, y, 9, 6, '#2e8b3e'); rect(c.x + 1, y + 1, 7, 4, '#7fd27f'); rect(c.x + 4, y + 1, 1, 4, '#1e5e2a');
   }
-  for (const it of items) if (!it.got) drawItem(it, Math.round(it.y));
+  for (const it of items) if (!it.got && avatar !== 'vorcaro') drawItem(it, Math.round(it.y));
   for (const b of bullets) if (b.alive) {
     // a cabeça voa deitada, com a careca virada para a frente
     ctx.save();
@@ -624,15 +673,16 @@ function drawWorld() {
   }
   if (state !== 'win' && (p.inv === 0 || (frame >> 2) % 2)) {
     const spr = !p.onGround ? PJUMP : Math.abs(p.vx) > 0.3 ? PLAYER[Math.floor(p.anim) % 2] : PLAYER[0];
-    if (p.scissors) {
-      // mesma tesoura do item, virada para o lado que ele encara
-      drawSprite(TESOURA, p.face > 0 ? p.x + p.w - 4 : p.x - 14, p.y + 1, p.face < 0);
+    if (p.power) {
+      // mesma peca do item, virada para o lado que ele encara
+      if (p.avatar === 'cavalo') drawSprite(FERRADURA, p.face > 0 ? p.x - 4 : p.x + p.w - 8, p.y + 2, p.face < 0);
+      else drawSprite(TESOURA, p.face > 0 ? p.x + p.w - 4 : p.x - 14, p.y + 1, p.face < 0);
       if (p.snip > 6) {                        // riscos do corte
         const ax = p.face > 0 ? p.x + p.w + 2 : p.x - 10;
         rect(ax, p.y + 2, 7, 1, '#fff'); rect(ax + 3, p.y + 6, 7, 1, '#fff'); rect(ax, p.y + 10, 7, 1, '#fff');
       }
     }
-    drawSprite(spr, p.x - 1, p.y, p.face < 0);
+    drawSprite(spr, p.x - (p.avatar === 'cavalo' ? 6 : 1), p.y, p.face < 0);
   }
   ctx.restore();
 }
@@ -672,14 +722,17 @@ function drawSprite(img, x, y, flip, s = 1) {
   else ctx.drawImage(img, x, y, w, h);
 }
 
-function drawItem(it, y) { drawSprite(TESOURA, it.x - 2, y - 2); }
+function drawItem(it, y) {
+  if (avatar === 'cavalo') return drawSprite(FERRADURA, it.x, y);
+  drawSprite(TESOURA, it.x - 3, y - 3);
+}
 
 function drawHUD() {
   for (let i = 0; i < 5; i++) {
     const c = i < lives ? '#e63946' : '#0006', x = 8 + i * 12;
     rect(x, 9, 3, 2, c); rect(x + 4, 9, 3, 2, c); rect(x - 1, 10, 9, 3, c); rect(x, 13, 7, 2, c); rect(x + 2, 15, 3, 2, c);
   }
-  if (p.scissors) text('TESOURA', 8, 26, '#ffd23f', 'left');
+  if (p.power) text(avatar === 'cavalo' ? 'FERRADURA' : 'TESOURA', 8, 26, '#ffd23f', 'left');
   if (p.liq > 0) text('LIQUIDAÇÃO!', W / 2, 34, '#ff6b6b');
   text('US$ ' + money + ' MI', W - 8, 16, '#7fd27f', 'right');
   // progress bar
@@ -718,11 +771,11 @@ function buildReceipt() {
   };
   T('COMPROVANTE', 16, 34, 12, '#1a1a1a');
   T('DE FUGA', 16, 52, 12, '#1a1a1a');
-  g.drawImage(avatar === 'vorcaro' ? PLAYER_VORCARO[0] : PLAYER_FLAVIO[0], 250, 18, 48, 64);
+  g.drawImage(avatar === 'vorcaro' ? PLAYER_VORCARO[0] : avatar === 'cavalo' ? CAVALO : PLAYER_FLAVIO[0], avatar === 'cavalo' ? 236 : 250, 18, avatar === 'cavalo' ? 66 : 48, 64);
   const secs = Math.floor(framesPlayed / 60);
   const mm = String(Math.floor(secs / 60)).padStart(2, '0');
   const ss = String(secs % 60).padStart(2, '0');
-  T('FUGITIVO: ' + (avatar === 'vorcaro' ? 'VORCARO' : 'FLAVIO'), 16, 96, 8, '#3a3a3a');
+  T('FUGITIVO: ' + AVATAR_NAME[avatar], 16, 96, 8, '#3a3a3a');
   T('DESTINO: MIAMI', 16, 116, 8, '#3a3a3a');
   T('TEMPO: ' + mm + ':' + ss, 16, 136, 8, '#3a3a3a');
   T('DINHEIRO:', 16, 162, 8, '#3a3a3a');
@@ -752,7 +805,7 @@ function draw() {
   if (state === 'title') panel([
     ['CORRE, FLÁVIO!', '#ffd23f'], ['Perdeu a eleição...', '#fff'], ['Fuja até Miami!', '#fff'],
     ['← → ou A D  mover', '#9fd6ff'], ['↑/W pula   ↓/S corta', '#9fd6ff'],
-    [unlocked ? 'avatar: ' + (avatar === 'vorcaro' ? 'VORCARO' : 'FLÁVIO') + '  ← →' : '', '#ffd23f'],
+    [unlocked ? 'avatar: ' + AVATAR_NAME[avatar] + '  ← →' : '', '#ffd23f'],
     ['ESPAÇO p/ começar', blink]]);
   if (state === 'over') panel([
     ['PEGO PELA PF!', '#e63946'], ['', ''], ['Juntou ' + milhoes(money), '#7fd27f'], ['', ''], ['ESPAÇO p/ tentar de novo', blink]]);
