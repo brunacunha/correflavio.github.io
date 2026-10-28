@@ -275,6 +275,7 @@ const BULLET = { w: 14, h: 12, y: GROUND - 24, vx: -1.9, every: 150, from: 700, 
 
 let p, enemies, papers, coins, items, bullets, lives, money, state, camX, frame, plane;   // money is in millions
 let framesPlayed = 0, receiptShown = false;
+let farts = [], nextFart = 0;
 const milhoes = m => 'US$ ' + m + (m === 1 ? ' milhão' : ' milhões');
 
 function reset() {
@@ -295,6 +296,7 @@ function reset() {
   bullets = [];
   lives = 3; money = 0; camX = 0; frame = 0; plane = null;
   framesPlayed = 0; hideReceipt();
+  farts = []; nextFart = 420 + Math.floor(Math.random() * 900);
 }
 reset(); state = 'title';
 
@@ -345,6 +347,28 @@ function jingle(notes, step = 0.06, type = 'square') {
 // "M" liga/desliga todo o som (o título promete isso desde a primeira versão)
 let muted = false;
 function toggleMute() { muted = !muted; beep(muted ? 330 : 660, 0.12, 'triangle', muted ? -120 : 120, true); }
+
+// "pum": dente de serra grave descendo, com filtro e vibrato
+function fart() {
+  if (!ac || muted) return;
+  const t = ac.currentTime;
+  const o = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter();
+  o.type = 'sawtooth';
+  o.frequency.setValueAtTime(115, t);
+  o.frequency.exponentialRampToValueAtTime(48, t + 0.38);
+  f.type = 'lowpass';
+  f.frequency.setValueAtTime(1100, t);
+  f.frequency.exponentialRampToValueAtTime(280, t + 0.38);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.16, t + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.42);
+  const lfo = ac.createOscillator(), lg = ac.createGain();
+  lfo.type = 'square'; lfo.frequency.setValueAtTime(26, t);
+  lg.gain.setValueAtTime(38, t);
+  lfo.connect(lg); lg.connect(o.frequency);
+  o.connect(f); f.connect(g); g.connect(ac.destination);
+  o.start(t); lfo.start(t); o.stop(t + 0.44); lfo.stop(t + 0.44);
+}
 
 
 
@@ -480,6 +504,15 @@ function update() {
   }
   if (p.liq > 0) p.liq--;
   framesPlayed++;
+
+  // evento aleatorio: "se cagou"
+  if (p.avatar === 'flavio' && --nextFart <= 0) {
+    nextFart = 420 + Math.floor(Math.random() * 900);
+    fart();
+    farts.push({ x: p.x + (p.face > 0 ? -4 : p.w + 4), y: p.y + p.h - 7, t: 0 });
+  }
+  for (const f of farts) f.t++;
+  farts = farts.filter(f => f.t < 40);
 
   if (p.x > PLANE_X + 10) {
     state = 'win'; plane = { x: PLANE_X - 20, y: GROUND - 22, vx: 0, t: 0 };
@@ -684,6 +717,15 @@ function drawWorld() {
     }
     drawSprite(spr, p.x - (p.avatar === 'cavalo' ? 6 : 1), p.y, p.face < 0);
   }
+  for (const f of farts) {
+    const k = f.t / 40, r = 3 + Math.round(k * 6);
+    ctx.globalAlpha = Math.max(0.12, 0.9 - k);
+    rect(f.x - r, f.y - r - k * 10, r * 2, r * 2, '#8fb24a');
+    rect(f.x - r - 2, f.y - r - k * 10 + 2, r, r, '#a8c95e');
+    ctx.globalAlpha = 1;
+  }
+  const puff = farts[farts.length - 1];
+  if (puff && puff.t < 26) text('PUM!', puff.x, puff.y - 22 - puff.t * 0.4, '#c9ef7a');
   ctx.restore();
 }
 
