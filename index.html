@@ -315,16 +315,9 @@ function drawBackground() {
     const cx = ((i * 160 - camX * 0.15) % 1280 + 1280) % 1280 - 100, cy = 20 + (i * 37) % 50;
     rect(cx, cy, 40, 8, '#ffffffbb'); rect(cx + 8, cy - 6, 22, 6, '#ffffffbb');
   }
-  // Brasília: Congresso Nacional
+  // Brasília: Praça dos Três Poderes (Planalto, Congresso, STF e o mastro)
   const bx = 150 - camX * 0.3;
-  if (bx > -120) {
-    const c = '#8fa3b8';
-    rect(bx + 30, 100, 8, 60, c); rect(bx + 42, 100, 8, 60, c); rect(bx + 30, 120, 20, 3, c);
-    rect(bx - 10, 150, 100, 10, c);
-    ctx.fillStyle = c;
-    ctx.beginPath(); ctx.ellipse(bx + 5, 150, 18, 9, 0, Math.PI, 0); ctx.fill();   // bowl down
-    ctx.beginPath(); ctx.ellipse(bx + 75, 141, 18, 9, 0, 0, Math.PI); ctx.fill();   // bowl up
-  }
+  if (bx > -330) drawPraca(bx);
   // Miami skyline
   const colors = ['#f7a1c4', '#7ad3d6', '#fbe7a1', '#c3a5f0', '#ffffff'];
   for (let i = 0; i < 22; i++) {
@@ -344,6 +337,55 @@ function drawBackground() {
       if ((x + frame) % 24 < 4) rect(x, 168 + ((x * 7) % 20), 2, 1, '#9fd6ff');
     }
   }
+}
+
+// Praça dos Três Poderes em silhueta: Palácio do Planalto, Congresso
+// (duas torres + as duas cúpulas), STF e o mastro da bandeira.
+function drawPraca(bx) {
+  const c1 = '#9aa9bd', c2 = '#7e8ea4', c3 = '#b7c4d4', c4 = '#66768c';
+  const cols = (x, y, n, step, h, c) => { for (let i = 0; i < n; i++) rect(x + i * step, y, 2, h, c); };
+
+  // Palácio do Planalto
+  rect(bx + 4, 126, 80, 5, c3);
+  rect(bx + 8, 131, 72, 4, c1);
+  cols(bx + 12, 135, 9, 8, 23, c2);
+  rect(bx + 6, 155, 78, 3, c1);
+  rect(bx + 30, 146, 30, 3, c3);          // rampa
+
+  // Congresso Nacional: base, duas torres e as cúpulas
+  rect(bx + 96, 139, 94, 19, c1);
+  rect(bx + 96, 139, 94, 3, c3);
+  rect(bx + 120, 92, 9, 47, c2);
+  rect(bx + 133, 92, 9, 47, c2);
+  ctx.fillStyle = c2;
+  ctx.beginPath(); ctx.ellipse(bx + 106, 131, 12, 8, 0, 0, Math.PI); ctx.fill();      // Câmara (bacia)
+  ctx.beginPath(); ctx.ellipse(bx + 178, 139, 12, 8, 0, Math.PI, 0); ctx.fill();      // Senado (domo)
+
+  // Supremo Tribunal Federal
+  rect(bx + 202, 126, 68, 4, c3);
+  cols(bx + 205, 130, 8, 9, 25, c2);
+  rect(bx + 200, 155, 72, 3, c1);
+  // A Justiça: pedestal e a figura
+  rect(bx + 254, 150, 10, 5, c2);
+  rect(bx + 257, 140, 4, 10, c4);
+  rect(bx + 258, 136, 2, 4, c4);
+  rect(bx + 256, 133, 6, 3, c4);
+
+  // Mastro e bandeira: losango por linha e círculo azul no centro
+  rect(bx + 282, 92, 2, 66, c4);
+  const fx = bx + 284, fy = 92, fw = 18, fh = 12;
+  rect(fx, fy, fw, fh, '#1e9e48');
+  for (let i = 0; i < fh; i++) {
+    const half = Math.round((3 + 2 * Math.min(i, fh - 1 - i)) / 2);
+    rect(fx + fw / 2 - half, fy + i, half * 2, 1, '#ffd23f');
+  }
+  rect(fx + 8, fy + 4, 2, 1, '#2a4f9b');
+  rect(fx + 7, fy + 5, 4, 1, '#2a4f9b');
+  rect(fx + 7, fy + 6, 4, 1, '#2a4f9b');
+  rect(fx + 8, fy + 7, 2, 1, '#2a4f9b');
+
+  // espelho d'água na frente da praça
+  rect(bx + 90, 152, 110, 3, '#a8c4da');
 }
 
 function drawPalm(x, y) {
