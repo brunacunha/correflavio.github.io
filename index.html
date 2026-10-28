@@ -80,27 +80,51 @@ const VORCARO_TOP = [
 const VPAL = { ...PAL, h: '#5a4130', b: '#4a3627', m: '#33251a', s: '#f0c49a', t: '#7d8aa0' };
 
 // Cavalo Preto (Black Horse): quadrupede de perfil, referencia ao filme
-const CAVALO_ROWS = [
-  "........................d.....",
-  ".....................dddd.....",
+const CAVALO_FRAMES = [
+[
   "....................dddddd....",
-  "..................dddddded....",
-  ".......ddd.....dddddddddddd...",
-  "....dddddddddddddddddd...dd...",
-  "...ddddddddddddddddddd....d...",
-  "...dddddddddddddddddd.........",
-  "...dddddddddddddddddd.........",
-  "...dddddddddddddddddd.........",
-  "...d.dddd..ddddddddd..........",
-  "...d.dddd.....d.ddd...........",
-  "...d.ddd........ddd...........",
-  "...ddddd........ddd...........",
-  "....ddd.........ddd...........",
-  "....d.d.........dd............",
-  "....d.d.........dd............",
-  "....d.dd........dd............",
-  ".......d........d.............",
-  ".............................."
+  "...................dddddddd...",
+  ".................dddddddddd...",
+  "......ddddd...ddddddddddeddd..",
+  "...ddddddddddddddddddddddddd..",
+  "..dddddddddddddddddddddddddd..",
+  "..ddddddddddddddddddddd.dddd..",
+  "..ddddddddddddddddddddd..ddd..",
+  "..dddddddddddddddddddd........",
+  "..dddddddddddddddddddd........",
+  "..dddddddddddddddddddd........",
+  "..ddddddddddddddddddd.........",
+  "..dddddddd...ddddddd..........",
+  "..ddddddd......ddddd..........",
+  "..ddddddd......ddddd..........",
+  "...ddddd.......ddddd..........",
+  "...dddddd......dddd...........",
+  "...dddddd......dddd...........",
+  "...dddddd......dddd...........",
+  "......ddd......ddd............"
+],
+[
+  "....................dddddd....",
+  "...................dddddddd...",
+  ".................dddddddddd...",
+  "......ddddd...ddddddddddeddd..",
+  "...ddddddddddddddddddddddddd..",
+  "..dddddddddddddddddddddddddd..",
+  "..ddddddddddddddddddddd.dddd..",
+  "..ddddddddddddddddddddd..ddd..",
+  "..dddddddddddddddddddd........",
+  "..dddddddddddddddddddd........",
+  "..dddddddddddddddddddd........",
+  "..ddddddddddddddddddd.........",
+  "..dddddddd...ddddddd..........",
+  ".ddddddd......d..dddd.........",
+  ".ddddddd......d..dddd.........",
+  "..ddddd.......d..dddd.........",
+  "..dddddd......d..ddd..........",
+  "..dddddd......d..ddd..........",
+  "..dddddd......d..ddd..........",
+  ".....ddd......d..dd..........."
+]
 ];
 const HPAL = { d: '#141414', e: '#f0b04a' };
 const makeJump = (top, pal) => sprite([...top.slice(0, 9), ".snnwgwnns..", "s..nnnnnn..s", "...nnnnnn...", "..nn....nn..", ".nn......nn.", ".bb......bb."].slice(0, 16), pal);
@@ -123,9 +147,9 @@ const FERRADURA = sprite([
   "km........mk",
   "kk........kk"
 ], { k: "#1a1a1a", m: "#8f97a3", h: "#d7dee8" });
-const CAVALO = sprite(CAVALO_ROWS, HPAL);
-const PLAYER_CAVALO = [CAVALO, CAVALO];
-const PJUMP_CAVALO = CAVALO;
+const PLAYER_CAVALO = CAVALO_FRAMES.map(f => sprite(f, HPAL));
+const CAVALO = PLAYER_CAVALO[0];
+const PJUMP_CAVALO = PLAYER_CAVALO[1];
 const AVATARS = ['flavio', 'vorcaro', 'cavalo'];
 const AVATAR_NAME = { flavio: 'FLÁVIO', vorcaro: 'VORCARO', cavalo: 'BLACK HORSE' };
 let avatar = 'flavio', unlocked = false;
@@ -715,7 +739,9 @@ function drawWorld() {
         rect(ax, p.y + 2, 7, 1, '#fff'); rect(ax + 3, p.y + 6, 7, 1, '#fff'); rect(ax, p.y + 10, 7, 1, '#fff');
       }
     }
-    drawSprite(spr, p.x - (p.avatar === 'cavalo' ? 6 : 1), p.y, p.face < 0);
+    const ox = p.avatar === 'cavalo' ? Math.round((spr.width - p.w) / 2) : 1;
+    const oy = p.avatar === 'cavalo' ? p.h - spr.height : 0;
+    drawSprite(spr, p.x - ox, p.y + oy, p.face < 0);
   }
   for (const f of farts) {
     const k = f.t / 40, r = 3 + Math.round(k * 6);
