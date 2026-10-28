@@ -62,22 +62,22 @@ const LEGS = [
   ["...nn..nn...", "..nn....nn..", ".nn......nn.", ".bb......bb."],
   ["....nnnn....", "....nnnn....", "...nn.nn....", "...bbbbb...."],
 ];
-// Vorcaro, o banqueiro: cabelo, bigode e gravata vermelha
+// Vorcaro, o banqueiro: cabelo penteado para tras, barba cheia e terno
 const VORCARO_TOP = [
   "...kkkkkk...",
   "..khhhhhhk..",
-  "..kssssssk..",
-  "..ssesseks..",
+  "..khssssshk.",
+  "..ksessesk..",
   "..ssssssss..",
-  "...smmmms...",
-  "....ssss....",
-  "..nnwrwnn...",
-  ".nnnwrwnnn..",
-  ".snnwrwnns..",
-  ".s.nwrwn.s..",
+  "..sbbmmbbs..",
+  "...sbbbbs...",
+  "..nnwttwnn..",
+  ".nnnwttwnnn.",
+  ".snnwttwnns.",
+  ".s.nwttwn.s.",
   "...nnnnnn...",
 ];
-const VPAL = { ...PAL, h: '#241a15', m: '#241a15' };
+const VPAL = { ...PAL, h: '#5a4130', b: '#4a3627', m: '#33251a', s: '#f0c49a', t: '#7d8aa0' };
 const makeJump = (top, pal) => sprite([...top.slice(0, 9), ".snnwgwnns..", "s..nnnnnn..s", "...nnnnnn...", "..nn....nn..", ".nn......nn.", ".bb......bb."].slice(0, 16), pal);
 const PLAYER_FLAVIO = LEGS.map(l => sprite([...TOP, ...l], PAL));
 const PJUMP_FLAVIO = makeJump(TOP, PAL);
