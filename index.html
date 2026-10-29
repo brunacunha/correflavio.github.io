@@ -12,16 +12,82 @@
   #touch{position:fixed;left:0;right:0;bottom:12px;display:none;justify-content:space-between;padding:0 16px;pointer-events:none}
   #touch div{display:flex;gap:12px}
   #touch button{pointer-events:auto;width:64px;height:64px;border-radius:12px;border:3px solid #fff8;background:#0006;color:#fff;font:16px 'Press Start 2P',monospace}
+  
+  /* Language button styling */
+  #lang-btn {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 10;
+    background: #0006;
+    color: #fff;
+    border: 2px solid #fff8;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font: 10px 'Press Start 2P', monospace;
+    cursor: pointer;
+    pointer-events: auto;
+  }
+  #lang-btn:hover { background: #000a; }
+
   @media (pointer:coarse){#touch{display:flex}}
 </style>
 </head>
 <body>
+<button id="lang-btn">EN</button>
 <div id="wrap"><canvas id="c" width="384" height="216"></canvas></div>
 <div id="touch">
   <div><button data-k="left">◀</button><button data-k="right">▶</button></div>
   <div><button data-k="jump">▲</button></div>
 </div>
 <script>
+// ---------- language support ----------
+let lang = 'pt';
+const LANG = {
+  pt: {
+    title1: 'CORRE, FLÁVIO!',
+    title2: 'Perdeu a eleição...',
+    title3: 'Fuja até Miami!',
+    controls: '← → mover  ↑ pular',
+    musicTip: 'M liga/desliga música',
+    startTip: 'ESPAÇO p/ começar',
+    caught: 'PEGO PELA PF!',
+    gathered: 'Juntou ',
+    retry: 'ESPAÇO p/ tentar de novo',
+    congrats: 'PARABÉNS!',
+    coward: 'VOCÊ IS A COWARD!', // keeping flavor
+    cowardPt: 'VOCÊ É UM COVARDE!',
+    vorcaro: 'Dinheiro do Vorcaro:',
+    lives: 'Vidas: ',
+    playAgain: 'ESPAÇO p/ jogar de novo',
+    milhao: ' milhão',
+    milhoes: ' milhões'
+  },
+  en: {
+    title1: 'RUN, FLÁVIO!',
+    title2: 'Lost the election...',
+    title3: 'Escape to Miami!',
+    controls: '← → move  ↑ jump',
+    musicTip: 'M toggle music',
+    startTip: 'SPACE to start',
+    caught: 'CAUGHT BY POLICE!',
+    gathered: 'Gathered ',
+    retry: 'SPACE to try again',
+    congrats: 'CONGRATS!',
+    coward: 'YOU ARE A COWARD!',
+    vorcaro: "Vorcaro's money:",
+    lives: 'Lives: ',
+    playAgain: 'SPACE to play again',
+    milhao: ' million',
+    milhoes: ' millions'
+  }
+};
+
+document.getElementById('lang-btn').addEventListener('click', (e) => {
+  lang = lang === 'pt' ? 'en' : 'pt';
+  e.target.textContent = lang === 'pt' ? 'EN' : 'PT';
+});
+
 const W = 384, H = 216, LEVEL = 4000, GROUND = 184;
 const cv = document.getElementById('c'), ctx = cv.getContext('2d');
 ctx.imageSmoothingEnabled = false;
@@ -59,7 +125,6 @@ const LEGS = [
 ];
 const PLAYER = LEGS.map(l => sprite([...TOP, ...l], PAL));
 const PJUMP = sprite([...TOP.slice(0, 9), ".snnwgwnns..", "s..nnnnnn..s", "...nnnnnn...", "..nn....nn..", ".nn......nn.", ".bb......bb."].slice(0,16), PAL);
-// Polícia Federal agent: black cap and uniform, yellow "PF" lettering
 const POLICE = [0, 1].map(f => sprite([
   "...pppppp...",
   "..pppyyppp..",
@@ -77,8 +142,6 @@ const POLICE = [0, 1].map(f => sprite([
         : ["...pp..pp...", "...pp..pp...", "...pp..pp...", "..ppp..ppp.."]),
 ], { ...PAL, p: '#151515' }));
 
-// flying Lula head: gray hair and beard
-// Donald Trump waiting at the plane; frame 1 waves
 const TRUMP_ROWS = [
   "..yyyyyyy...",
   ".yyyyyyyyyy.",
@@ -125,7 +188,6 @@ const solids = [];
 const G = (a, b) => solids.push({ x: a, y: GROUND, w: b - a, h: 40 });
 const P = (x, y, w) => solids.push({ x, y, w, h: 8, plat: true });
 G(0, 580); G(610, 1020); G(1050, 1320); G(1350, 1820); G(1850, 2210);
-// ocean islands
 [[2240, 2350, 176], [2380, 2510, 166], [2540, 2690, 172], [2720, 2850, 162], [2880, 3010, 170]]
   .forEach(([a, b, y]) => solids.push({ x: a, y, w: b - a, h: 60, island: true }));
 G(3040, LEVEL);
@@ -135,8 +197,11 @@ P(3300, 140, 64); P(3500, 120, 64); P(3640, 96, 48);
 const CHECKPOINTS = [0, 1050, 1850, 2540, 3040];
 const PLANE_X = 3870;
 
-let p, enemies, papers, coins, lives, money, state, camX, frame, plane;   // money is in millions
-const milhoes = m => 'US$ ' + m + (m === 1 ? ' milhão' : ' milhões');
+let p, enemies, papers, coins, lives, money, state, camX, frame, plane;
+const milhoes = m => {
+  const t = LANG[lang];
+  return 'US$ ' + m + (m === 1 ? t.milhao : t.milhoes);
+};
 
 function reset() {
   p = { x: 30, y: 120, w: 10, h: 16, vx: 0, vy: 0, onGround: false, face: 1, inv: 0, coyote: 0, anim: 0 };
@@ -184,8 +249,6 @@ function beep(f, d = 0.08, type = 'square', slide = 0) {
   o.connect(g).connect(ac.destination); o.start(t); o.stop(t + d);
 }
 
-
-
 // ---------- update ----------
 const hit = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 
@@ -224,7 +287,6 @@ function update() {
   if (p.inv > 0) p.inv--;
   if (Math.abs(p.vx) > 0.3) p.anim += 0.2;
 
-  // fell
   if (p.y > H + 20) {
     lives--; beep(300, 0.4, 'triangle', -250);
     if (lives <= 0) { state = 'over'; return; }
@@ -265,7 +327,7 @@ function text(s, x, y, c = '#fff', align = 'center') {
 }
 
 const sunPhoto = new Image();
-sunPhoto.src = 'lula.png';   // optional; falls back to the pixel face if missing
+sunPhoto.src = 'lula.png';
 
 function drawBackground() {
   const t = camX / (LEVEL - W);
@@ -273,35 +335,30 @@ function drawBackground() {
   sky.addColorStop(0, mix([90, 160, 230], [120, 70, 160], t));
   sky.addColorStop(1, mix([180, 220, 250], [255, 160, 120], t));
   ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
-  // sun
   ctx.fillStyle = mix([255, 240, 150], [255, 120, 80], t);
   const sunX = 320 - t * 40, sunY = 40 + t * 70;
   ctx.beginPath(); ctx.arc(sunX, sunY, 16, 0, 7); ctx.fill();
   if (sunPhoto.complete && sunPhoto.naturalWidth) {
-    // real photo (lula.png next to index.html), cropped to a circle inside the sun's ring
     const s = Math.min(sunPhoto.naturalWidth, sunPhoto.naturalHeight);
     ctx.save(); ctx.beginPath(); ctx.arc(sunX, sunY, 14, 0, 7); ctx.clip();
     ctx.imageSmoothingEnabled = true;
     ctx.drawImage(sunPhoto, (sunPhoto.naturalWidth - s) / 2, (sunPhoto.naturalHeight - s) / 2, s, s, sunX - 14, sunY - 14, 28, 28);
     ctx.restore(); ctx.imageSmoothingEnabled = false;
-  } else ctx.drawImage(LULA, Math.round(sunX) - 12, Math.round(sunY) - 12, 24, 24);   // pixel Lula face, 2x
-  // clouds
+  } else ctx.drawImage(LULA, Math.round(sunX) - 12, Math.round(sunY) - 12, 24, 24);
   ctx.fillStyle = '#ffffffcc';
   for (let i = 0; i < 8; i++) {
     const cx = ((i * 160 - camX * 0.15) % 1280 + 1280) % 1280 - 100, cy = 20 + (i * 37) % 50;
     rect(cx, cy, 40, 8, '#ffffffbb'); rect(cx + 8, cy - 6, 22, 6, '#ffffffbb');
   }
-  // Brasília: Congresso Nacional
   const bx = 150 - camX * 0.3;
   if (bx > -120) {
     const c = '#8fa3b8';
     rect(bx + 30, 100, 8, 60, c); rect(bx + 42, 100, 8, 60, c); rect(bx + 30, 120, 20, 3, c);
     rect(bx - 10, 150, 100, 10, c);
     ctx.fillStyle = c;
-    ctx.beginPath(); ctx.ellipse(bx + 5, 150, 18, 9, 0, Math.PI, 0); ctx.fill();   // bowl down
-    ctx.beginPath(); ctx.ellipse(bx + 75, 141, 18, 9, 0, 0, Math.PI); ctx.fill();   // bowl up
+    ctx.beginPath(); ctx.ellipse(bx + 5, 150, 18, 9, 0, Math.PI, 0); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(bx + 75, 141, 18, 9, 0, 0, Math.PI); ctx.fill();
   }
-  // Miami skyline
   const colors = ['#f7a1c4', '#7ad3d6', '#fbe7a1', '#c3a5f0', '#ffffff'];
   for (let i = 0; i < 22; i++) {
     const x = 930 + i * 30 - camX * 0.3, h = 30 + ((i * 53) % 50);
@@ -309,7 +366,6 @@ function drawBackground() {
     rect(x, 165 - h, 24, h, colors[i % 5]);
     for (let wy = 170 - h; wy < 160; wy += 8) for (let wx = 4; wx < 22; wx += 6) rect(x + wx, wy, 3, 4, '#3a4a7a88');
   }
-  // hills (Brasil) or sea, by column
   for (let x = 0; x < W; x += 2) {
     const wx = camX + x;
     if (wx < 2200) {
@@ -333,7 +389,6 @@ function drawPalm(x, y) {
 
 function drawWorld() {
   ctx.save(); ctx.translate(-Math.round(camX), 0);
-  // water in the ocean section
   rect(2210, 196, 830, 20, '#1f5f99');
   for (let x = 2210; x < 3040; x += 16) rect(x + (frame >> 3) % 8, 196, 6, 2, '#7cc4ff');
 
@@ -351,17 +406,13 @@ function drawWorld() {
     for (let x = s.x; x < s.x + s.w; x += 12) for (let y = s.y + 10; y < s.y + s.h; y += 10)
       rect(x + ((y / 10) % 2) * 6, y, 2, 2, sand ? '#d4a95e' : '#6e4520');
   }
-  // signs
   sign(40, 'BRASÍLIA', '#1e9e48', '#ffd23f');
   sign(2150, 'MIAMI', '#2a7fbf', '#fff');
   for (const x of [3180, 3380, 3560, 3760, 3960]) drawPalm(x, GROUND);
   for (const x of [200, 900, 1450]) drawIpe(x, GROUND);
 
-  // plane
   const pl = plane || { x: PLANE_X - 20, y: GROUND - 22 };
   drawPlane(pl.x, pl.y);
-  // Trump waits beside the plane, waving and greeting when Flávio gets close;
-  // after Flávio boards he walks to the plane and gets in before takeoff
   const near = state === 'win' || p.x > TRUMP_X - 220;
   const walked = state === 'win' ? Math.min(plane.t * 0.6, 24) : 0;
   if (!(state === 'win' && plane.t > 42)) {
@@ -379,7 +430,7 @@ function drawWorld() {
   }
   for (const e of enemies) if (e.alive) drawSprite(POLICE[(frame >> 4) & 1], e.x - 1, e.y, e.dir < 0);
   for (const d of papers) if (d.on) {
-    const up = (frame >> 3) % 2;   // flapping wings
+    const up = (frame >> 3) % 2;
     rect(d.x - 5, d.y + 3 - up * 2, 5, 3, '#fff'); rect(d.x - 3, d.y + 6 - up * 2, 3, 2, '#fff');
     rect(d.x + 12, d.y + 3 - up * 2, 5, 3, '#fff'); rect(d.x + 12, d.y + 6 - up * 2, 3, 2, '#fff');
     drawSprite(LULA, d.x, d.y);
@@ -402,7 +453,7 @@ function sign(x, label, bg, fg, size = 8) {
   const top = GROUND - 26 - size - 6;
   rect(x + 14, top, 3, GROUND - top, '#6b4423');
   ctx.font = FONT.replace('8px', size + 'px'); const w = ctx.measureText(label).width + size;
-  rect(x + 15 - w / 2 - 1, top - 1, w + 2, size + 8, '#2a2a5a');   // dark border
+  rect(x + 15 - w / 2 - 1, top - 1, w + 2, size + 8, '#2a2a5a');
   rect(x + 15 - w / 2, top, w, size + 6, bg);
   ctx.textAlign = 'center';
   ctx.fillStyle = '#0006'; ctx.fillText(label, x + 16, top + size + 4);
@@ -431,8 +482,7 @@ function drawHUD() {
     rect(x, 9, 3, 2, c); rect(x + 4, 9, 3, 2, c); rect(x - 1, 10, 9, 3, c); rect(x, 13, 7, 2, c); rect(x + 2, 15, 3, 2, c);
   }
   text('US$ ' + money + ' MI', W - 8, 16, '#7fd27f', 'right');
-  // progress bar
-  const bx = 72, bw = W - 200, prog = Math.min(1, p.x / PLANE_X);   // leaves room on the right for MIA + money
+  const bx = 72, bw = W - 200, prog = Math.min(1, p.x / PLANE_X);
   rect(bx, 10, bw, 6, '#0006'); rect(bx, 10, bw * prog, 6, '#ffd23f');
   text('BSB', bx - 4, 17, '#fff', 'right'); text('MIA', bx + bw + 4, 17, '#fff', 'left');
 }
@@ -447,13 +497,15 @@ function draw() {
   drawWorld();
   drawHUD();
   const blink = (frame >> 5) % 2 ? '#fff' : '#ffd23f';
+  const t = LANG[lang];
+
   if (state === 'title') panel([
-    ['CORRE, FLÁVIO!', '#ffd23f'], ['Perdeu a eleição...', '#fff'], ['Fuja até Miami!', '#fff'],
-    ['← → mover  ↑ pular', '#9fd6ff'], ['M liga/desliga música', '#9fd6ff'], ['ESPAÇO p/ começar', blink]]);
+    [t.title1, '#ffd23f'], [t.title2, '#fff'], [t.title3, '#fff'],
+    [t.controls, '#9fd6ff'], [t.musicTip, '#9fd6ff'], [t.startTip, blink]]);
   if (state === 'over') panel([
-    ['PEGO PELA PF!', '#e63946'], ['', ''], ['Juntou ' + milhoes(money), '#7fd27f'], ['', ''], ['ESPAÇO p/ tentar de novo', blink]]);
+    [t.caught, '#e63946'], ['', ''], [t.gathered + milhoes(money), '#7fd27f'], ['', ''], [t.retry, blink]]);
   if (state === 'win' && plane.t > 120) panel([
-    ['PARABÉNS!', '#f7a1c4'], ['VOCÊ É UM COVARDE!', '#ffd23f'], ['Dinheiro do Vorcaro:', '#fff'], [milhoes(money), '#7fd27f'], ['Vidas: ' + lives, '#fff'], ['ESPAÇO p/ jogar de novo', blink]]);
+    [t.congrats, '#f7a1c4'], [lang === 'en' ? t.coward : t.cowardPt, '#ffd23f'], [t.vorcaro, '#fff'], [milhoes(money), '#7fd27f'], [t.lives + lives, '#fff'], [t.playAgain, blink]]);
 }
 
 // ---------- loop ----------
