@@ -12,33 +12,29 @@
   #touch{position:fixed;left:0;right:0;bottom:12px;display:none;justify-content:space-between;padding:0 16px;pointer-events:none}
   #touch div{display:flex;gap:12px}
   #touch button{pointer-events:auto;width:64px;height:64px;border-radius:12px;border:3px solid #fff8;background:#0006;color:#fff;font:16px 'Press Start 2P',monospace}
-  
-  /* Language button styling */
-  #lang-btn {
-    position: fixed;
-    top: 12px;
-    right: 12px;
-    z-index: 10;
-    background: #0006;
-    color: #fff;
-    border: 2px solid #fff8;
-    border-radius: 8px;
-    padding: 6px 10px;
-    font: 10px 'Press Start 2P', monospace;
-    cursor: pointer;
-    pointer-events: auto;
-  }
-  #lang-btn:hover { background: #000a; }
-
   @media (pointer:coarse){#touch{display:flex}}
+  #lang-btn{position:fixed;top:12px;right:12px;z-index:10;background:#0006;color:#fff;
+    border:2px solid #fff8;border-radius:8px;padding:6px 10px;font:10px 'Press Start 2P',monospace;
+    cursor:pointer;pointer-events:auto}
+  #lang-btn:hover{background:#000a}
+  #recibo{position:fixed;left:50%;bottom:15%;transform:translateX(-50%);display:none;z-index:9;
+    padding:16px 22px;border:4px solid #ffd23f;border-radius:10px;background:#000e;color:#ffd23f;
+    font:14px 'Press Start 2P',monospace;letter-spacing:1px;text-decoration:none;cursor:pointer;
+    box-shadow:0 0 0 4px #000a;animation:pisca .9s steps(1,end) infinite}
+  @keyframes pisca{
+    0%,49%{background:#000e;color:#ffd23f;border-color:#ffd23f}
+    50%,100%{background:#ffd23f;color:#1a1a2e;border-color:#fff}
+  }
+  #recibo:hover{background:#ffd23f;color:#1a1a2e;animation:none}
 </style>
 </head>
 <body>
-<button id="lang-btn">EN</button>
+<button id="lang-btn" title="PT/EN">EN</button>
 <div id="wrap"><canvas id="c" width="384" height="216"></canvas></div>
+<a id="recibo" download="comprovante-de-fuga.png">BAIXAR COMPROVANTE</a>
 <div id="touch">
   <div><button data-k="left">◀</button><button data-k="right">▶</button></div>
-  <div><button data-k="jump">▲</button></div>
+  <div><button data-k="down">▼</button><button data-k="jump">▲</button></div>
 </div>
 <script>
 // ---------- language support ----------
@@ -48,45 +44,77 @@ const LANG = {
     title1: 'CORRE, FLÁVIO!',
     title2: 'Perdeu a eleição...',
     title3: 'Fuja até Miami!',
-    controls: '← → mover  ↑ pular',
-    musicTip: 'M liga/desliga música',
+    controls: '← → ou A D  mover',
+    jump: '↑/W pula',
+    action: { flavio: 'corta', cavalo: 'coice', eduardo: 'banana' },
+    avatar: 'avatar: ',
+    avatarLocked: 'termine 1 vez e libere avatares',
     startTip: 'ESPAÇO p/ começar',
     caught: 'PEGO PELA PF!',
     gathered: 'Juntou ',
     retry: 'ESPAÇO p/ tentar de novo',
     congrats: 'PARABÉNS!',
-    coward: 'VOCÊ IS A COWARD!', // keeping flavor
-    cowardPt: 'VOCÊ É UM COVARDE!',
+    coward: 'VOCÊ É UM COVARDE!',
     vorcaro: 'Dinheiro do Vorcaro:',
-    lives: 'Vidas: ',
-    playAgain: 'ESPAÇO p/ jogar de novo',
+    avatarsUnlocked: 'AVATARES LIBERADOS!',
+    switchTip: '← → troca no menu',
+    playAgain: 'ESPAÇO p/ ir ao menu',
     milhao: ' milhão',
-    milhoes: ' milhões'
+    milhoes: ' milhões',
+    liquidation: 'LIQUIDAÇÃO!',
+    powers: { cavalo: 'FERRADURA', eduardo: 'BANANA', flavio: 'TESOURA' },
+    download: 'BAIXAR COMPROVANTE',
+    receipt: {
+      title1: 'COMPROVANTE', title2: 'DE FUGA',
+      fugitive: 'FUGITIVO: ', destination: 'DESTINO: MIAMI',
+      time: 'TEMPO: ', money: 'DINHEIRO:', stamp: 'RECEBIDO'
+    }
   },
   en: {
     title1: 'RUN, FLÁVIO!',
     title2: 'Lost the election...',
     title3: 'Escape to Miami!',
-    controls: '← → move  ↑ jump',
-    musicTip: 'M toggle music',
+    controls: '← → or A D  move',
+    jump: '↑/W jump',
+    action: { flavio: 'cut', cavalo: 'kick', eduardo: 'drop' },
+    avatar: 'avatar: ',
+    avatarLocked: 'finish once to unlock avatars',
     startTip: 'SPACE to start',
-    caught: 'CAUGHT BY POLICE!',
+    caught: 'CAUGHT BY THE FEDS!',
     gathered: 'Gathered ',
     retry: 'SPACE to try again',
     congrats: 'CONGRATS!',
     coward: 'YOU ARE A COWARD!',
     vorcaro: "Vorcaro's money:",
-    lives: 'Lives: ',
-    playAgain: 'SPACE to play again',
+    avatarsUnlocked: 'AVATARS UNLOCKED!',
+    switchTip: '← → to switch in the menu',
+    playAgain: 'SPACE to go to the menu',
     milhao: ' million',
-    milhoes: ' million'
+    milhoes: ' million',
+    liquidation: 'LIQUIDATION!',
+    powers: { cavalo: 'HORSESHOE', eduardo: 'BANANA', flavio: 'SCISSORS' },
+    download: 'DOWNLOAD RECEIPT',
+    receipt: {
+      title1: 'ESCAPE', title2: 'RECEIPT',
+      fugitive: 'FUGITIVE: ', destination: 'DESTINATION: MIAMI',
+      time: 'TIME: ', money: 'MONEY:', stamp: 'RECEIVED'
+    }
   }
 };
 
-document.getElementById('lang-btn').addEventListener('click', (e) => {
+function applyLang() {
+  document.documentElement.lang = lang === 'pt' ? 'pt-BR' : 'en';
+  const btn = document.getElementById('lang-btn');
+  if (btn) btn.textContent = lang === 'pt' ? 'EN' : 'PT';
+  const link = document.getElementById('recibo');
+  if (link) link.textContent = LANG[lang].download;
+}
+
+document.getElementById('lang-btn').addEventListener('click', () => {
   lang = lang === 'pt' ? 'en' : 'pt';
-  e.target.textContent = lang === 'pt' ? 'EN' : 'PT';
+  applyLang();
 });
+applyLang();
 
 const W = 384, H = 216, LEVEL = 4000, GROUND = 184;
 const cv = document.getElementById('c'), ctx = cv.getContext('2d');
@@ -108,7 +136,7 @@ const TOP = [
   "...kkkkkk...",
   "..kkkkkkkk..",
   "..kssssssk..",
-  "..ssesseks..",
+  "..ksessesk..",
   "..ssssssss..",
   "...ssmmss...",
   "....ssss....",
@@ -123,8 +151,215 @@ const LEGS = [
   ["...nn..nn...", "..nn....nn..", ".nn......nn.", ".bb......bb."],
   ["....nnnn....", "....nnnn....", "...nn.nn....", "...bbbbb...."],
 ];
-const PLAYER = LEGS.map(l => sprite([...TOP, ...l], PAL));
-const PJUMP = sprite([...TOP.slice(0, 9), ".snnwgwnns..", "s..nnnnnn..s", "...nnnnnn...", "..nn....nn..", ".nn......nn.", ".bb......bb."].slice(0,16), PAL);
+// Vorcaro, o banqueiro: cabelo penteado para tras, barba cheia e terno
+const VORCARO_TOP = [
+  "...kkkkkk...",
+  ".khhhhhhhhk.",
+  ".khhhhhhhhk.",
+  "..khssssshk.",
+  "..ksessesk..",
+  "..sbbmmbbs..",
+  "...sbbbbs...",
+  "..nnnwwnnn..",
+  ".nnnwttwnnn.",
+  ".snnwttwnns.",
+  ".s.nwttwn.s.",
+  "...nnnnnn..."
+];
+const VPAL = { ...PAL, h: '#5a4130', b: '#4a3627', m: '#33251a', s: '#f0c49a', t: '#6f7d94' };
+
+// Cavalo Preto (Black Horse): quadrupede de perfil, referencia ao filme
+// Eduardo Bananinha: entrada alta, barba cheia e gravata vermelha
+const EDUARDO_TOP = [
+  "...kkkkkk...",
+  "..kSsssssk..",
+  ".kSsssssssk.",
+  "..kssssssk..",
+  "..ksessesk..",
+  "..sbbmmbbs..",
+  "...sbbbbs...",
+  "..nnwrrwnn..",
+  ".nnnwrrwnnn.",
+  ".snnwrrwnns.",
+  ".s.nwrrwn.s.",
+  "...nnnnnn..."
+];
+const EPAL = { ...PAL, S: '#ffe0c4', b: '#2a201a', m: '#171310', s: '#f2c9a4' };
+
+// banana (power-up) e casca (armadilha no chao)
+const BANANA = sprite([
+  "................",
+  "...kkkkkkkkkk...",
+  "..kkyyyyyyyykk..",
+  "kkkyyyyyyyyyykkk",
+  "kyyyyyyyyyyyyyyk",
+  "kybyyykkkkyyybyk",
+  "ybyykkk..kkkyyby",
+  "yyykk......kkyyb",
+  "kkyk........kykk",
+  ".kkk........kkk.",
+  "................",
+  "................",
+  "................"
+], { k: '#2b1d14', y: '#ffd23f', b: '#8a6a20' });
+const CASCA = sprite([
+  "..............",
+  "..............",
+  "..............",
+  "kk.........kkk",
+  "bkk........kbb",
+  "yykk......kkyy",
+  "kyykkkkkkkkyyk",
+  "kkyyyyyyyyyykk",
+  ".kkyyyyyyyykk.",
+  "..kkkkbbkkkk.."
+], { k: '#2b1d14', y: '#ffd23f', b: '#8a6a20' });
+
+const CAVALO_PARADO = [
+  "................................dd......",
+  "..............................dddd......",
+  "...........................ddddddd......",
+  "..........................dddddddd......",
+  "........................dddddddddd......",
+  ".....................ddddddddddeddd.....",
+  ".......dddddddddd.dddddddddddd.ddddd....",
+  ".....dddddddddddddddddddddddd....ddd....",
+  "....ddddddddddddddddddddddddd.....dd....",
+  "....dddddddddddddddddddddddd............",
+  "....ddddddddddddddddddddddd.............",
+  "....ddddddddddddddddddddddd.............",
+  "....dd.dddddddddddddddddddd.............",
+  "....dd.dddddd.ddddddddddddd.............",
+  "....dd.ddddd.....ddddddddd..............",
+  "....dd.ddddd..........ddd...............",
+  "....dd.dddd...........ddd...............",
+  "....d.dddd...........dddd...............",
+  "....d.dddd...........dddd...............",
+  "......d..d...........dddd...............",
+  "......d..d...........d.d................",
+  "......d..d...........d.d................",
+  "......d..d...........d.d................",
+  "......d..dd..........d.d................",
+  "......dd..d..........dd.d...............",
+  "........................d..............."
+];
+const CAVALO_ANDA = [
+  "................................dd......",
+  "..............................dddd......",
+  "...........................ddddddd......",
+  "..........................dddddddd......",
+  "........................dddddddddd......",
+  ".....................ddddddddddeddd.....",
+  ".......dddddddddd.dddddddddddd.ddddd....",
+  ".....dddddddddddddddddddddddd....ddd....",
+  "....ddddddddddddddddddddddddd.....dd....",
+  "....dddddddddddddddddddddddd............",
+  "....ddddddddddddddddddddddd.............",
+  "....ddddddddddddddddddddddd.............",
+  "....dd.dddddddddddddddddddd.............",
+  "....dd.dddddd.ddddddddddddd.............",
+  "....dd.ddddd.....ddddddddd..............",
+  "....dd.ddddd..........ddd...............",
+  "....dd.dddd...........ddd...............",
+  "...d.dddd.............dddd..............",
+  "...d.dddd.............dddd..............",
+  ".....d..d.............dddd..............",
+  ".....d..d.............d.d...............",
+  ".....d..d.............d.d...............",
+  ".....d..d.............d.d...............",
+  ".....d..dd............d.d...............",
+  ".....dd..d............dd.d..............",
+  ".........................d.............."
+];
+const CAVALO_COICE = [
+  "................................dd......",
+  "..............................dddd......",
+  "...........................ddddddd......",
+  "..........................dddddddd......",
+  "........................dddddddddd......",
+  ".....................ddddddddddeddd.....",
+  ".......dddddddddd.dddddddddddd.ddddd....",
+  ".....dddddddddddddddddddddddd....ddd....",
+  "....ddddddddddddddddddddddddd.....dd....",
+  "....dddddddddddddddddddddddd............",
+  "....ddddddddddddddddddddddd.............",
+  "....ddddddddddddddddddddddd.............",
+  "....dd.dddddddddddddddddddd.............",
+  "....dd.dddddd.ddddddddddddd.............",
+  "....dd.ddddd.....ddddddddd..............",
+  "....dd.ddddd..........ddd...............",
+  ".dd.dd.dddd...........ddd...............",
+  ".dddd................dddd...............",
+  "...dddd..............dddd...............",
+  ".....dddd............dddd...............",
+  ".......dddd..........d.d................",
+  ".........dddd........d.d................",
+  "...........dd........d.d................",
+  ".....................d.d................",
+  ".....................dd.d...............",
+  "........................d..............."
+];
+const HPAL = { d: '#141414', e: '#f0b04a' };
+const makeJump = (top, pal, tie) => sprite([...top.slice(0, 9), ".snnw" + tie + "wnns..", "s..nnnnnn..s", "...nnnnnn...", "..nn....nn..", ".nn......nn.", ".bb......bb."].slice(0, 16), pal);
+const PLAYER_FLAVIO = LEGS.map(l => sprite([...TOP, ...l], PAL));
+const PJUMP_FLAVIO = makeJump(TOP, PAL, 'g');
+const PLAYER_VORCARO = LEGS.map(l => sprite([...VORCARO_TOP, ...l], VPAL));
+const PLAYER_EDUARDO = LEGS.map(l => sprite([...EDUARDO_TOP, ...l], EPAL));
+const PJUMP_VORCARO = makeJump(VORCARO_TOP, VPAL, 't');
+const PJUMP_EDUARDO = makeJump(EDUARDO_TOP, EPAL, 'r');
+const FERRADURA = sprite([
+  "..kkkkkkkk..",
+  ".kmmmmmmmmk.",
+  "kmm......mmk",
+  "kmh......hmk",
+  "km........mk",
+  "km........mk",
+  "km........mk",
+  "km........mk",
+  "km........mk",
+  "km........mk",
+  "km........mk",
+  "km........mk",
+  "kk........kk"
+], { k: "#1a1a1a", m: "#8f97a3", h: "#d7dee8" });
+// 4 quadros de passo: desloca pernas da frente e de tras em fases opostas
+function horseFrame(frontDx, hindDx) {
+  const LEG = 17, MID = 15, h = CAVALO_PARADO.length, w = CAVALO_PARADO[0].length;
+  const g = CAVALO_PARADO.map(r => r.split(''));
+  for (let y = LEG; y < h; y++) for (let x = 0; x < w; x++) g[y][x] = '.';
+  for (let y = LEG; y < h; y++) {
+    const row = CAVALO_PARADO[y];
+    for (let x = 0; x < w; x++) {
+      if (row[x] !== 'd') continue;
+      const nx = x + (x >= MID ? frontDx : hindDx);
+      if (nx >= 0 && nx < w) g[y][nx] = 'd';
+    }
+  }
+  return sprite(g.map(r => r.join('')), HPAL);
+}
+const CAVALO_FRAMES = [horseFrame(0, 0), horseFrame(2, -2), horseFrame(1, -1), horseFrame(-1, 1)];
+const PLAYER_CAVALO = CAVALO_FRAMES;
+const CAVALO = CAVALO_FRAMES[0];
+const PJUMP_CAVALO = CAVALO_FRAMES[1];
+const CAVALO_KICK_SPR = sprite(CAVALO_COICE, HPAL);
+const AVATARS = ['flavio', 'vorcaro', 'cavalo', 'eduardo'];
+const HITBOX = { flavio: { w: 10, h: 16 }, vorcaro: { w: 10, h: 16 }, cavalo: { w: 16, h: 24 }, eduardo: { w: 10, h: 16 } };
+const AVATAR_NAME = { flavio: 'FLÁVIO', vorcaro: 'VORCARO', cavalo: 'BLACK HORSE', eduardo: 'EDUARDO BANANINHA' };
+let avatar = 'flavio', unlocked = false;
+try {
+  unlocked = localStorage.getItem('correflavio.unlocked') === '1';
+  const saved = localStorage.getItem('correflavio.avatar');
+  if (AVATARS.includes(saved)) avatar = saved;
+} catch (e) {}
+let PLAYER = PLAYER_FLAVIO, PJUMP = PJUMP_FLAVIO;
+function applyAvatar() {
+  PLAYER = avatar === 'vorcaro' ? PLAYER_VORCARO : avatar === 'cavalo' ? PLAYER_CAVALO
+         : avatar === 'eduardo' ? PLAYER_EDUARDO : PLAYER_FLAVIO;
+  PJUMP = avatar === 'vorcaro' ? PJUMP_VORCARO : avatar === 'cavalo' ? PJUMP_CAVALO
+        : avatar === 'eduardo' ? PJUMP_EDUARDO : PJUMP_FLAVIO;
+}
+applyAvatar();
+// Polícia Federal agent: black cap and uniform, yellow "PF" lettering
 const POLICE = [0, 1].map(f => sprite([
   "...pppppp...",
   "..pppyyppp..",
@@ -142,6 +377,8 @@ const POLICE = [0, 1].map(f => sprite([
         : ["...pp..pp...", "...pp..pp...", "...pp..pp...", "..ppp..ppp.."]),
 ], { ...PAL, p: '#151515' }));
 
+// flying Lula head: gray hair and beard
+// Donald Trump waiting at the plane; frame 1 waves
 const TRUMP_ROWS = [
   "..yyyyyyy...",
   ".yyyyyyyyyy.",
@@ -183,11 +420,66 @@ const LULA = sprite([
   ".....BB.....",
 ], { ...PAL, h: '#9a9a9a', B: '#d4d4d4', o: '#d08a60' });
 
+// "bala de canhão" do Mario, versão pátria: a cabeça calva (e brilhante)
+// do Alexandre de Moraes, de lado, voando sem canhão nenhum.
+const MORAES = sprite([
+  ".........kkkkkk.........",
+  "......kkksssssskkk......",
+  "...kkksssssssssssskkk...",
+  "..kkSssssssssssssssskk..",
+  ".kkSSSssssssssssssssokk.",
+  ".kkSSSssssssssssssssokk.",
+  ".kkSSsssssssssssssssokk.",
+  ".kksssssssssssssssssokk.",
+  ".kksssssssssssssssssokk.",
+  ".kksssssssssssssssssokk.",
+  ".kksssssssssssssssssokk.",
+  ".kksssssssssssssssssokk.",
+  ".kksssssssssssssssssokk.",
+  ".kksssssssssssssssssokk.",
+  ".kksssssssssssssssssokk.",
+  "kskssssssssssssssssssksk",
+  "ksksbbbbssssssssbbbbsksk",
+  "kskssssssssssssssssssksk",
+  "ksksseesssssssssseessksk",
+  "ksksssssssssossssssssksk",
+  "kskssssssssoossssssssksk",
+  "ksksssssssossosssssssksk",
+  "kskssssssssssssssssssksk",
+  "ksksssssssmmmmsssssssksk",
+  "kskssssssssssssssssssksk",
+  ".kksssssssssssssssssskk.",
+  "..kkppppwwwwwwwwppppkk..",
+  "...kkpppwwwnnwwwpppkk..."
+], { ...PAL, s: '#e8b388', S: '#ffd9b5', o: '#b57d5a', b: '#1a1410', e: '#120f0d', p: '#1b1e26', w: '#e8eef5', n: '#1c2a4a', m: '#8a3f33' });
+
+
+// tesoura do tesouraço: contorno escuro para destacar do céu
+const TESOURA = sprite([
+  "..kkk.......kkk...",
+  "..kakk.....kkak...",
+  "..kkakk...kkakk...",
+  "...kkakk.kkakk....",
+  "....kkak.kakk.....",
+  ".....kakkkak......",
+  ".....kkakakk......",
+  "......kkrkk.......",
+  ".....kkrkrkk......",
+  "....kkrkkkrkk.....",
+  "kkkkkrkk.kkrkkkk..",
+  "krrrrkk...krrrrk..",
+  "krkrrk....krkrrk..",
+  "krkkrk....krkkrk..",
+  "krrrrk....krrrrk..",
+  "kkkkkk....kkkkkk.."
+], { k: '#1a1a1a', a: '#e9eef5', r: '#c8323c' });
+
 // ---------- level ----------
 const solids = [];
 const G = (a, b) => solids.push({ x: a, y: GROUND, w: b - a, h: 40 });
 const P = (x, y, w) => solids.push({ x, y, w, h: 8, plat: true });
 G(0, 580); G(610, 1020); G(1050, 1320); G(1350, 1820); G(1850, 2210);
+// ocean islands
 [[2240, 2350, 176], [2380, 2510, 166], [2540, 2690, 172], [2720, 2850, 162], [2880, 3010, 170]]
   .forEach(([a, b, y]) => solids.push({ x: a, y, w: b - a, h: 60, island: true }));
 G(3040, LEVEL);
@@ -197,14 +489,21 @@ P(3300, 140, 64); P(3500, 120, 64); P(3640, 96, 48);
 const CHECKPOINTS = [0, 1050, 1850, 2540, 3040];
 const PLANE_X = 3870;
 
-let p, enemies, papers, coins, lives, money, state, camX, frame, plane;
+// a bala careca não sai de cano nenhum: ela simplesmente aparece na borda direita
+const BULLET = { w: 14, h: 12, y: GROUND - 24, vx: -1.9, every: 150, from: 700, to: PLANE_X - 140 };
+
+let p, enemies, papers, coins, items, bullets, lives, money, state, camX, frame, plane;   // money is in millions
+let framesPlayed = 0, receiptShown = false;
+let farts = [], nextFart = 0;
+let peels = [];
 const milhoes = m => {
   const t = LANG[lang];
   return 'US$ ' + m + (m === 1 ? t.milhao : t.milhoes);
 };
 
 function reset() {
-  p = { x: 30, y: 120, w: 10, h: 16, vx: 0, vy: 0, onGround: false, face: 1, inv: 0, coyote: 0, anim: 0 };
+  const hb = HITBOX[avatar] || HITBOX.flavio;
+  p = { x: 30, y: 120, w: hb.w, h: hb.h, vx: 0, vy: 0, onGround: false, face: 1, inv: 0, coyote: 0, anim: 0, power: false, snip: 0, avatar, cdb: 0, liq: 0 };
   enemies = [[400, 300, 540], [850, 660, 990], [1240, 1080, 1290], [1500, 1400, 1640], [1720, 1600, 1790],
              [3250, 3100, 3400], [3450, 3350, 3600], [3700, 3600, 3820]]
     .map(([x, min, max]) => ({ x, y: GROUND - 16, w: 10, h: 16, min, max, dir: -1, alive: true }));
@@ -215,20 +514,45 @@ function reset() {
     if (s) coins.push({ x, y: s.y - 22, got: false });
   }
   [[320, 120], [340, 120], [1200, 104], [1220, 104], [1700, 84], [3660, 76]].forEach(([x, y]) => coins.push({ x, y, got: false }));
+  // power-up: a tesoura do tesouraço
+  items = [[780, 112], [1712, 88], [2500, 120], [3400, 118]]
+    .map(([x, y0]) => ({ x, y0, y: y0, t: 0, got: false }));
+  bullets = [];
   lives = 3; money = 0; camX = 0; frame = 0; plane = null;
+  framesPlayed = 0; hideReceipt();
+  farts = []; nextFart = 420 + Math.floor(Math.random() * 900);
+  peels = [];
 }
 reset(); state = 'title';
 
 // ---------- input ----------
-const keys = { left: false, right: false, jump: false };
+const keys = { left: false, right: false, jump: false, down: false };
 let jumpPressed = false;
-const MAP = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', ArrowUp: 'jump', KeyW: 'jump', Space: 'jump' };
+const MAP = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', ArrowUp: 'jump', KeyW: 'jump', Space: 'jump', ArrowDown: 'down', KeyS: 'down' };
 function press(k, down) {
   if (down && k === 'jump' && !keys.jump) jumpPressed = true;
+  if (down && state === 'title' && unlocked && (k === 'left' || k === 'right')) {
+    avatar = AVATARS[(AVATARS.indexOf(avatar) + (k === 'right' ? 1 : AVATARS.length - 1)) % AVATARS.length];
+    applyAvatar();
+    try { localStorage.setItem('correflavio.avatar', avatar); } catch (e) {}
+    beep(k === 'right' ? 784 : 659, 0.07);
+    return;
+  }
   keys[k] = down;
-  if (down) { initAudio(); if (state !== 'play' && k === 'jump') { if (state !== 'title') reset(); state = 'play'; jumpPressed = false; } }
+  if (down) {
+    initAudio();
+    if (state !== 'play' && k === 'jump') {
+      reset();
+      state = state === 'win' ? 'title' : 'play';   // vitoria volta ao menu p/ trocar de avatar
+      jumpPressed = false;
+    }
+  }
 }
-addEventListener('keydown', e => { const k = MAP[e.code]; if (k) { e.preventDefault(); press(k, true); } });
+addEventListener('keydown', e => {
+  const k = MAP[e.code];
+  if (k) { e.preventDefault(); press(k, true); }
+  else if (e.code === 'KeyM') { e.preventDefault(); initAudio(); toggleMute(); }
+});
 addEventListener('keyup', e => { const k = MAP[e.code]; if (k) press(k, false); });
 document.querySelectorAll('#touch button').forEach(b => {
   const k = b.dataset.k;
@@ -240,20 +564,58 @@ cv.addEventListener('pointerdown', () => { if (state !== 'play') { press('jump',
 // ---------- audio ----------
 let ac;
 function initAudio() { if (!ac) try { ac = new AudioContext(); } catch (e) {} }
-function beep(f, d = 0.08, type = 'square', slide = 0) {
-  if (!ac) return;
+function beep(f, d = 0.08, type = 'square', slide = 0, force = false) {
+  if (!ac || (muted && !force)) return;
   const o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime;
   o.type = type; o.frequency.setValueAtTime(f, t);
   if (slide) o.frequency.linearRampToValueAtTime(f + slide, t + d);
   g.gain.setValueAtTime(0.08, t); g.gain.exponentialRampToValueAtTime(0.001, t + d);
   o.connect(g).connect(ac.destination); o.start(t); o.stop(t + d);
 }
+// short arpeggio used by pickups, warps and combos
+function jingle(notes, step = 0.06, type = 'square') {
+  notes.forEach((f, i) => setTimeout(() => beep(f, step + 0.04, type), i * step * 1000));
+}
+// "M" liga/desliga todo o som (o título promete isso desde a primeira versão)
+let muted = false;
+function toggleMute() { muted = !muted; beep(muted ? 330 : 660, 0.12, 'triangle', muted ? -120 : 120, true); }
+
+// "pum": dente de serra grave descendo, com filtro e vibrato
+function fart() {
+  if (!ac || muted) return;
+  const t = ac.currentTime;
+  const o = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter();
+  o.type = 'sawtooth';
+  o.frequency.setValueAtTime(115, t);
+  o.frequency.exponentialRampToValueAtTime(48, t + 0.38);
+  f.type = 'lowpass';
+  f.frequency.setValueAtTime(1100, t);
+  f.frequency.exponentialRampToValueAtTime(280, t + 0.38);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.16, t + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.42);
+  const lfo = ac.createOscillator(), lg = ac.createGain();
+  lfo.type = 'square'; lfo.frequency.setValueAtTime(26, t);
+  lg.gain.setValueAtTime(38, t);
+  lfo.connect(lg); lg.connect(o.frequency);
+  o.connect(f); f.connect(g); g.connect(ac.destination);
+  o.start(t); lfo.start(t); o.stop(t + 0.44); lfo.stop(t + 0.44);
+}
+
+
 
 // ---------- update ----------
 const hit = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 
+// a tesoura é o power-up: quem está com ela aguenta um hit e pode cortar
 function hurt() {
   if (p.inv > 0) return;
+  if (p.power) { p.power = false; p.inv = 90; p.vy = -4; beep(300, 0.22, 'square', -90); return; }
+  if (p.avatar === 'vorcaro' && money > 0) {
+    money = 0; p.liq = 120; p.inv = 90; p.vy = -5;
+    beep(170, 0.32, 'sawtooth', -110);
+    return;
+  }
   lives--; p.inv = 90; p.vy = -5; p.vx = -p.face * 3;
   beep(200, 0.3, 'sawtooth', -150);
   if (lives <= 0) state = 'over';
@@ -269,29 +631,66 @@ function update() {
 
   const dir = keys.right - keys.left;
   if (dir) p.face = dir;
-  p.vx += (dir * 2 - p.vx) * 0.25;
+  const spd = p.avatar === 'cavalo' ? 2.7 : 2;
+  p.vx += (dir * spd - p.vx) * 0.25;
   p.coyote = p.onGround ? 6 : p.coyote - 1;
-  if (jumpPressed && p.coyote > 0) { p.vy = -7.6; p.coyote = 0; beep(440, 0.1, 'square', 300); }
+  if (jumpPressed && p.coyote > 0) { p.vy = p.avatar === 'cavalo' ? -8.4 : -7.6; p.coyote = 0; beep(440, 0.1, 'square', 300); }
   jumpPressed = false;
   if (!keys.jump && p.vy < -3) p.vy = -3;
   p.vy = Math.min(p.vy + 0.4, 8);
 
   p.x += p.vx;
-  for (const s of solids) if (hit(p, s)) p.x = p.vx > 0 ? s.x - p.w : s.x + s.w;
+  for (const s of solids) {
+    if (s.plat) continue;              // plataforma se atravessa por baixo
+    if (hit(p, s)) p.x = p.vx > 0 ? s.x - p.w : s.x + s.w;
+  }
   p.x = Math.max(0, p.x);
+  const prevBottom = p.y + p.h;
   p.y += p.vy; p.onGround = false;
-  for (const s of solids) if (hit(p, s)) {
-    if (p.vy > 0) { p.y = s.y - p.h; p.onGround = true; } else p.y = s.y + s.h;
-    p.vy = 0;
+  for (const s of solids) {
+    if (s.plat) {
+      // pisa em cima, mas não bate a cabeça
+      if (p.vy > 0 && prevBottom <= s.y + 1 && p.y + p.h > s.y && p.x + p.w > s.x && p.x < s.x + s.w) {
+        p.y = s.y - p.h; p.onGround = true; p.vy = 0;
+      }
+      continue;
+    }
+    if (hit(p, s)) {
+      if (p.vy > 0) { p.y = s.y - p.h; p.onGround = true; } else p.y = s.y + s.h;
+      p.vy = 0;
+    }
   }
   if (p.inv > 0) p.inv--;
   if (Math.abs(p.vx) > 0.3) p.anim += 0.2;
 
+  // fell
   if (p.y > H + 20) {
-    lives--; beep(300, 0.4, 'triangle', -250);
+    if (p.avatar === 'vorcaro' && money > 0) { money = 0; p.liq = 120; }
+    else { lives--; beep(300, 0.4, 'triangle', -250); }
     if (lives <= 0) { state = 'over'; return; }
     const cp = CHECKPOINTS.filter(c => c <= p.x).pop();
     p.x = cp + 10; p.y = 100; p.vx = p.vy = 0; p.inv = 60;
+  }
+
+  // tesoura corta na frente, cavalo da coice atras, Eduardo joga a casca no chao
+  if (p.snip > 0) p.snip--;
+  if (keys.down && p.power && p.snip === 0) {
+    if (p.avatar === 'eduardo') {
+      p.power = false; p.snip = 10;
+      peels.push({ x: p.x + (p.face > 0 ? -10 : p.w + 2), y: GROUND - 8, t: 0 });
+      beep(700, 0.07, 'triangle', 180);
+    } else {
+      p.snip = 12;
+      beep(p.avatar === 'cavalo' ? 220 : 1400, 0.05, 'square', p.avatar === 'cavalo' ? -90 : -700);
+    }
+  }
+  if (p.snip > 6 && p.avatar !== 'eduardo') {
+    const cut = p.avatar === 'cavalo'
+      ? { x: p.face > 0 ? p.x - 24 : p.x + p.w, y: p.y - 2, w: 24, h: p.h + 4 }
+      : { x: p.face > 0 ? p.x + p.w : p.x - 20, y: p.y - 2, w: 20, h: p.h + 4 };
+    for (const e of enemies) if (e.alive && hit(cut, e)) { e.alive = false; money += 5; beep(880, 0.07, 'square', -400); }
+    for (const b of bullets) if (b.alive && hit(cut, b)) { b.alive = false; money += 3; beep(980, 0.06, 'square', -300); }
+    for (const d of papers) if (d.on && !d.dead && hit(cut, d)) { d.dead = true; money += 3; beep(980, 0.06, 'square', -300); }
   }
 
   for (const e of enemies) {
@@ -303,7 +702,46 @@ function update() {
       else hurt();
     }
   }
+
+  // a bala careca não sai de cano nenhum: aparece na borda direita e vem reta
+  if (p.x > BULLET.from && p.x < BULLET.to && frame % BULLET.every === 0 && bullets.length < 3) {
+    bullets.push({ x: camX + W + 16, y: BULLET.y, w: BULLET.w, h: BULLET.h, vx: BULLET.vx, alive: true });
+  }
+
+  for (const b of bullets) {
+    if (!b.alive) continue;
+    b.x += b.vx;
+    if (b.x < camX - 60) { b.alive = false; continue; }
+    if (hit(p, b)) {
+      if (p.vy > 0 && p.y + p.h - b.y < 12) {
+        b.alive = false; p.vy = -5.5; money += 3; beep(520, 0.1, 'square', -260);
+      } else hurt();
+    }
+  }
+
+  // cascas no chao: quem pisar escorrega
+  for (const pc of peels) {
+    if (pc.dead) continue;
+    for (const e of enemies) {
+      if (e.alive && hit({ x: pc.x, y: pc.y, w: 12, h: 8 }, e)) {
+        e.alive = false; pc.dead = true; money += 5;
+        jingle([1046, 784, 523], 0.05);
+      }
+    }
+  }
+  peels = peels.filter(pc => !pc.dead);
+
+  for (const it of items) {
+    if (it.got || p.avatar === 'vorcaro') continue;   // Vorcaro nao tem power-up
+    it.t++; it.y = it.y0 + Math.sin(it.t / 20) * 4;
+    if (hit(p, { x: it.x, y: it.y, w: 12, h: 12 })) {
+      it.got = true;
+      if (p.power) { money += 10; jingle([784, 1046], 0.05); }
+      else { p.power = true; jingle([784, 1046, 1318], 0.05); }
+    }
+  }
   for (const d of papers) {
+    if (d.dead) continue;
     if (!d.on && d.x - camX < W + 20) d.on = true;
     if (!d.on) continue;
     d.t++; d.x -= 0.9; d.y = d.y0 + Math.sin(d.t / 18) * 14;
@@ -311,7 +749,28 @@ function update() {
   }
   for (const c of coins) if (!c.got && hit(p, { x: c.x, y: c.y, w: 8, h: 6 })) { c.got = true; money++; beep(988, 0.06); setTimeout(() => beep(1318, 0.08), 60); }
 
-  if (p.x > PLANE_X + 10) { state = 'win'; plane = { x: PLANE_X - 20, y: GROUND - 22, vx: 0, t: 0 }; beep(523, 0.15); setTimeout(() => beep(659, 0.15), 150); setTimeout(() => beep(784, 0.3), 300); }
+  // Vorcaro: o dinheiro rende 10% a cada 5 segundos (CDB do Master)
+  if (p.avatar === 'vorcaro') {
+    p.cdb++;
+    if (p.cdb >= 300) { p.cdb = 0; money = Math.ceil(money * 1.1); }
+  }
+  if (p.liq > 0) p.liq--;
+  framesPlayed++;
+
+  // evento aleatorio: "se cagou"
+  if (p.avatar === 'flavio' && --nextFart <= 0) {
+    nextFart = 420 + Math.floor(Math.random() * 900);
+    fart();
+    farts.push({ x: p.x + (p.face > 0 ? -4 : p.w + 4), y: p.y + p.h - 7, t: 0 });
+  }
+  for (const f of farts) f.t++;
+  farts = farts.filter(f => f.t < 40);
+
+  if (p.x > PLANE_X + 10) {
+    state = 'win'; plane = { x: PLANE_X - 20, y: GROUND - 22, vx: 0, t: 0 };
+    if (!unlocked) { unlocked = true; try { localStorage.setItem('correflavio.unlocked', '1'); } catch (e) {} }
+    beep(523, 0.15); setTimeout(() => beep(659, 0.15), 150); setTimeout(() => beep(784, 0.3), 300);
+  }
 
   camX = Math.max(0, Math.min(LEVEL - W, p.x - 140));
 }
@@ -327,7 +786,7 @@ function text(s, x, y, c = '#fff', align = 'center') {
 }
 
 const sunPhoto = new Image();
-sunPhoto.src = 'lula.png';
+sunPhoto.src = 'lula.png';   // optional; falls back to the pixel face if missing
 
 function drawBackground() {
   const t = camX / (LEVEL - W);
@@ -335,30 +794,28 @@ function drawBackground() {
   sky.addColorStop(0, mix([90, 160, 230], [120, 70, 160], t));
   sky.addColorStop(1, mix([180, 220, 250], [255, 160, 120], t));
   ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
+  // sun
   ctx.fillStyle = mix([255, 240, 150], [255, 120, 80], t);
   const sunX = 320 - t * 40, sunY = 40 + t * 70;
   ctx.beginPath(); ctx.arc(sunX, sunY, 16, 0, 7); ctx.fill();
   if (sunPhoto.complete && sunPhoto.naturalWidth) {
+    // real photo (lula.png next to index.html), cropped to a circle inside the sun's ring
     const s = Math.min(sunPhoto.naturalWidth, sunPhoto.naturalHeight);
     ctx.save(); ctx.beginPath(); ctx.arc(sunX, sunY, 14, 0, 7); ctx.clip();
     ctx.imageSmoothingEnabled = true;
     ctx.drawImage(sunPhoto, (sunPhoto.naturalWidth - s) / 2, (sunPhoto.naturalHeight - s) / 2, s, s, sunX - 14, sunY - 14, 28, 28);
     ctx.restore(); ctx.imageSmoothingEnabled = false;
-  } else ctx.drawImage(LULA, Math.round(sunX) - 12, Math.round(sunY) - 12, 24, 24);
+  } else ctx.drawImage(LULA, Math.round(sunX) - 12, Math.round(sunY) - 12, 24, 24);   // pixel Lula face, 2x
+  // clouds
   ctx.fillStyle = '#ffffffcc';
   for (let i = 0; i < 8; i++) {
     const cx = ((i * 160 - camX * 0.15) % 1280 + 1280) % 1280 - 100, cy = 20 + (i * 37) % 50;
     rect(cx, cy, 40, 8, '#ffffffbb'); rect(cx + 8, cy - 6, 22, 6, '#ffffffbb');
   }
+  // Brasília: Praça dos Três Poderes (Planalto, Congresso, STF e o mastro)
   const bx = 150 - camX * 0.3;
-  if (bx > -120) {
-    const c = '#8fa3b8';
-    rect(bx + 30, 100, 8, 60, c); rect(bx + 42, 100, 8, 60, c); rect(bx + 30, 120, 20, 3, c);
-    rect(bx - 10, 150, 100, 10, c);
-    ctx.fillStyle = c;
-    ctx.beginPath(); ctx.ellipse(bx + 5, 150, 18, 9, 0, Math.PI, 0); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(bx + 75, 141, 18, 9, 0, 0, Math.PI); ctx.fill();
-  }
+  if (bx > -330) drawPraca(bx);
+  // Miami skyline
   const colors = ['#f7a1c4', '#7ad3d6', '#fbe7a1', '#c3a5f0', '#ffffff'];
   for (let i = 0; i < 22; i++) {
     const x = 930 + i * 30 - camX * 0.3, h = 30 + ((i * 53) % 50);
@@ -366,6 +823,7 @@ function drawBackground() {
     rect(x, 165 - h, 24, h, colors[i % 5]);
     for (let wy = 170 - h; wy < 160; wy += 8) for (let wx = 4; wx < 22; wx += 6) rect(x + wx, wy, 3, 4, '#3a4a7a88');
   }
+  // hills (Brasil) or sea, by column
   for (let x = 0; x < W; x += 2) {
     const wx = camX + x;
     if (wx < 2200) {
@@ -376,6 +834,55 @@ function drawBackground() {
       if ((x + frame) % 24 < 4) rect(x, 168 + ((x * 7) % 20), 2, 1, '#9fd6ff');
     }
   }
+}
+
+// Praça dos Três Poderes em silhueta: Palácio do Planalto, Congresso
+// (duas torres + as duas cúpulas), STF e o mastro da bandeira.
+function drawPraca(bx) {
+  const c1 = '#9aa9bd', c2 = '#7e8ea4', c3 = '#b7c4d4', c4 = '#66768c';
+  const cols = (x, y, n, step, h, c) => { for (let i = 0; i < n; i++) rect(x + i * step, y, 2, h, c); };
+
+  // Palácio do Planalto
+  rect(bx + 4, 126, 80, 5, c3);
+  rect(bx + 8, 131, 72, 4, c1);
+  cols(bx + 12, 135, 9, 8, 23, c2);
+  rect(bx + 6, 155, 78, 3, c1);
+  rect(bx + 30, 146, 30, 3, c3);          // rampa
+
+  // Congresso Nacional: base, duas torres e as cúpulas
+  rect(bx + 96, 139, 94, 19, c1);
+  rect(bx + 96, 139, 94, 3, c3);
+  rect(bx + 120, 92, 9, 47, c2);
+  rect(bx + 133, 92, 9, 47, c2);
+  ctx.fillStyle = c2;
+  ctx.beginPath(); ctx.ellipse(bx + 106, 131, 12, 8, 0, 0, Math.PI); ctx.fill();      // Câmara (bacia)
+  ctx.beginPath(); ctx.ellipse(bx + 178, 139, 12, 8, 0, Math.PI, 0); ctx.fill();      // Senado (domo)
+
+  // Supremo Tribunal Federal
+  rect(bx + 202, 126, 68, 4, c3);
+  cols(bx + 205, 130, 8, 9, 25, c2);
+  rect(bx + 200, 155, 72, 3, c1);
+  // A Justiça: pedestal e a figura
+  rect(bx + 254, 150, 10, 5, c2);
+  rect(bx + 257, 140, 4, 10, c4);
+  rect(bx + 258, 136, 2, 4, c4);
+  rect(bx + 256, 133, 6, 3, c4);
+
+  // Mastro e bandeira: losango por linha e círculo azul no centro
+  rect(bx + 282, 92, 2, 66, c4);
+  const fx = bx + 284, fy = 92, fw = 18, fh = 12;
+  rect(fx, fy, fw, fh, '#1e9e48');
+  for (let i = 0; i < fh; i++) {
+    const half = Math.round((3 + 2 * Math.min(i, fh - 1 - i)) / 2);
+    rect(fx + fw / 2 - half, fy + i, half * 2, 1, '#ffd23f');
+  }
+  rect(fx + 8, fy + 4, 2, 1, '#2a4f9b');
+  rect(fx + 7, fy + 5, 4, 1, '#2a4f9b');
+  rect(fx + 7, fy + 6, 4, 1, '#2a4f9b');
+  rect(fx + 8, fy + 7, 2, 1, '#2a4f9b');
+
+  // espelho d'água na frente da praça
+  rect(bx + 90, 152, 110, 3, '#a8c4da');
 }
 
 function drawPalm(x, y) {
@@ -389,6 +896,7 @@ function drawPalm(x, y) {
 
 function drawWorld() {
   ctx.save(); ctx.translate(-Math.round(camX), 0);
+  // water in the ocean section
   rect(2210, 196, 830, 20, '#1f5f99');
   for (let x = 2210; x < 3040; x += 16) rect(x + (frame >> 3) % 8, 196, 6, 2, '#7cc4ff');
 
@@ -406,13 +914,17 @@ function drawWorld() {
     for (let x = s.x; x < s.x + s.w; x += 12) for (let y = s.y + 10; y < s.y + s.h; y += 10)
       rect(x + ((y / 10) % 2) * 6, y, 2, 2, sand ? '#d4a95e' : '#6e4520');
   }
+  // signs
   sign(40, 'BRASÍLIA', '#1e9e48', '#ffd23f');
   sign(2150, 'MIAMI', '#2a7fbf', '#fff');
   for (const x of [3180, 3380, 3560, 3760, 3960]) drawPalm(x, GROUND);
   for (const x of [200, 900, 1450]) drawIpe(x, GROUND);
 
+  // plane
   const pl = plane || { x: PLANE_X - 20, y: GROUND - 22 };
   drawPlane(pl.x, pl.y);
+  // Trump waits beside the plane, waving and greeting when Flávio gets close;
+  // after Flávio boards he walks to the plane and gets in before takeoff
   const near = state === 'win' || p.x > TRUMP_X - 220;
   const walked = state === 'win' ? Math.min(plane.t * 0.6, 24) : 0;
   if (!(state === 'win' && plane.t > 42)) {
@@ -428,17 +940,51 @@ function drawWorld() {
     const y = c.y + Math.sin((frame + c.x) / 10) * 2;
     rect(c.x, y, 9, 6, '#2e8b3e'); rect(c.x + 1, y + 1, 7, 4, '#7fd27f'); rect(c.x + 4, y + 1, 1, 4, '#1e5e2a');
   }
+  for (const it of items) if (!it.got && avatar !== 'vorcaro') drawItem(it, Math.round(it.y));
+  for (const pc of peels) drawSprite(CASCA, pc.x, pc.y);
+  for (const b of bullets) if (b.alive) {
+    // a cabeça voa deitada, com a careca virada para a frente
+    ctx.save();
+    ctx.translate(Math.round(b.x + b.w / 2), Math.round(b.y + b.h / 2));
+    ctx.rotate(b.vx > 0 ? Math.PI / 2 : -Math.PI / 2);
+    ctx.drawImage(MORAES, -Math.round(MORAES.width / 2), -Math.round(MORAES.height / 2));
+    ctx.restore();
+  }
   for (const e of enemies) if (e.alive) drawSprite(POLICE[(frame >> 4) & 1], e.x - 1, e.y, e.dir < 0);
-  for (const d of papers) if (d.on) {
-    const up = (frame >> 3) % 2;
+  for (const d of papers) if (d.on && !d.dead) {
+    const up = (frame >> 3) % 2;   // flapping wings
     rect(d.x - 5, d.y + 3 - up * 2, 5, 3, '#fff'); rect(d.x - 3, d.y + 6 - up * 2, 3, 2, '#fff');
     rect(d.x + 12, d.y + 3 - up * 2, 5, 3, '#fff'); rect(d.x + 12, d.y + 6 - up * 2, 3, 2, '#fff');
     drawSprite(LULA, d.x, d.y);
   }
   if (state !== 'win' && (p.inv === 0 || (frame >> 2) % 2)) {
-    const spr = !p.onGround ? PJUMP : Math.abs(p.vx) > 0.3 ? PLAYER[Math.floor(p.anim) % 2] : PLAYER[0];
-    drawSprite(spr, p.x - 1, p.y, p.face < 0);
+    const spr = p.avatar === 'cavalo' && p.snip > 0 ? CAVALO_KICK_SPR
+      : !p.onGround ? PJUMP
+      : Math.abs(p.vx) > 0.3 ? PLAYER[Math.floor(p.anim) % (p.avatar === 'cavalo' ? 4 : 2)] : PLAYER[0];
+    if (p.power) {
+      // mesma peca do item, virada para o lado que ele encara
+      if (p.avatar === 'eduardo') drawSprite(BANANA, p.face > 0 ? p.x + p.w - 2 : p.x - 10, p.y + p.h - 15, p.face < 0);
+      else if (p.avatar !== 'cavalo') drawScissors(p.face > 0 ? p.x + p.w - 4 : p.x - 10, p.y + 2, p.snip > 6, p.face);
+      if (p.snip > 6 && p.avatar !== 'eduardo') {                        // riscos: na frente para cortar, atras no coice
+        const ax = p.avatar === 'cavalo'
+          ? (p.face > 0 ? p.x - 16 : p.x + p.w + 2)
+          : (p.face > 0 ? p.x + p.w + 2 : p.x - 10);
+        rect(ax, p.y + 2, 7, 1, '#fff'); rect(ax + 3, p.y + 6, 7, 1, '#fff'); rect(ax, p.y + 10, 7, 1, '#fff');
+      }
+    }
+    const ox = Math.round((spr.width - p.w) / 2);
+    const oy = p.h - spr.height;
+    drawSprite(spr, p.x - ox, p.y + oy, p.face < 0);
   }
+  for (const f of farts) {
+    const k = f.t / 40, r = 3 + Math.round(k * 6);
+    ctx.globalAlpha = Math.max(0.12, 0.9 - k);
+    rect(f.x - r, f.y - r - k * 10, r * 2, r * 2, '#8fb24a');
+    rect(f.x - r - 2, f.y - r - k * 10 + 2, r, r, '#a8c95e');
+    ctx.globalAlpha = 1;
+  }
+  const puff = farts[farts.length - 1];
+  if (puff && puff.t < 26) text('PUM!', puff.x, puff.y - 22 - puff.t * 0.4, '#c9ef7a');
   ctx.restore();
 }
 
@@ -453,7 +999,7 @@ function sign(x, label, bg, fg, size = 8) {
   const top = GROUND - 26 - size - 6;
   rect(x + 14, top, 3, GROUND - top, '#6b4423');
   ctx.font = FONT.replace('8px', size + 'px'); const w = ctx.measureText(label).width + size;
-  rect(x + 15 - w / 2 - 1, top - 1, w + 2, size + 8, '#2a2a5a');
+  rect(x + 15 - w / 2 - 1, top - 1, w + 2, size + 8, '#2a2a5a');   // dark border
   rect(x + 15 - w / 2, top, w, size + 6, bg);
   ctx.textAlign = 'center';
   ctx.fillStyle = '#0006'; ctx.fillText(label, x + 16, top + size + 4);
@@ -470,26 +1016,125 @@ function drawPlane(x, y) {
   if (!plane || plane.t < 85) { rect(x + 14, y + 18, 3, 4, '#333'); rect(x + 50, y + 18, 3, 4, '#333'); }
 }
 
-function drawSprite(img, x, y, flip) {
+function drawSprite(img, x, y, flip, s = 1) {
   x = Math.round(x); y = Math.round(y);
-  if (flip) { ctx.save(); ctx.scale(-1, 1); ctx.drawImage(img, -x - img.width, y); ctx.restore(); }
-  else ctx.drawImage(img, x, y);
+  const w = img.width * s, h = img.height * s;
+  if (flip) { ctx.save(); ctx.scale(-1, 1); ctx.drawImage(img, -x - w, y, w, h); ctx.restore(); }
+  else ctx.drawImage(img, x, y, w, h);
+}
+
+// tesoura pequena, a de segurar
+function ring(rx, ry) {
+  rect(rx, ry, 4, 1, '#c8323c'); rect(rx, ry + 3, 4, 1, '#c8323c');
+  rect(rx, ry, 1, 4, '#c8323c'); rect(rx + 3, ry, 1, 4, '#c8323c');
+}
+function drawScissors(x, y, open, dir = 1) {
+  const px = i => dir > 0 ? x + 3 + i : x + 9 - i;
+  const spread = open ? 4 : 1;
+  for (let i = 0; i < 9; i++) {
+    const dy = Math.round(i * spread / 9);
+    rect(px(i), y + 6 - dy, 1, 2, '#e9eef5');
+    rect(px(i), y + 7 + dy, 1, 2, '#e9eef5');
+  }
+  rect(dir > 0 ? x + 2 : x + 7, y + 6, 3, 3, '#8b939e');
+  ring(dir > 0 ? x : x + 8, y + 1 - spread);
+  ring(dir > 0 ? x : x + 8, y + 8 + spread);
+}
+
+function drawItem(it, y) {
+  if (avatar === 'cavalo') return drawSprite(FERRADURA, it.x, y);
+  if (avatar === 'eduardo') return drawSprite(BANANA, it.x - 2, y - 1);
+  drawSprite(TESOURA, it.x - 3, y - 3);
 }
 
 function drawHUD() {
-  for (let i = 0; i < 3; i++) {
+  const t = LANG[lang];
+  for (let i = 0; i < 5; i++) {
     const c = i < lives ? '#e63946' : '#0006', x = 8 + i * 12;
     rect(x, 9, 3, 2, c); rect(x + 4, 9, 3, 2, c); rect(x - 1, 10, 9, 3, c); rect(x, 13, 7, 2, c); rect(x + 2, 15, 3, 2, c);
   }
+  if (p.power) text(t.powers[avatar] || t.powers.flavio, 8, 26, '#ffd23f', 'left');
+  if (p.liq > 0) text(t.liquidation, W / 2, 34, '#ff6b6b');
   text('US$ ' + money + ' MI', W - 8, 16, '#7fd27f', 'right');
-  const bx = 72, bw = W - 200, prog = Math.min(1, p.x / PLANE_X);
+  // progress bar
+  const bx = 72, bw = W - 200, prog = Math.min(1, p.x / PLANE_X);   // leaves room on the right for MIA + money
   rect(bx, 10, bw, 6, '#0006'); rect(bx, 10, bw * prog, 6, '#ffd23f');
   text('BSB', bx - 4, 17, '#fff', 'right'); text('MIA', bx + bw + 4, 17, '#fff', 'left');
 }
 
 function panel(lines) {
-  rect(40, 46, W - 80, 120, '#000a');
-  lines.forEach(([s, c], i) => text(s, W / 2, 70 + i * 16, c));
+  const top = 38, h = 136, step = 15;
+  rect(36, top, W - 72, h, '#000a');
+  // centraliza o bloco de texto dentro do painel
+  const y0 = top + (h - (lines.length - 1) * step) / 2 + 3;
+  lines.forEach(([s, c], i) => text(s, W / 2, y0 + i * step, c));
+}
+
+// ---------- comprovante de fuga ----------
+function hideReceipt() {
+  receiptShown = false;
+  const a = document.getElementById('recibo');
+  if (a) a.style.display = 'none';
+}
+
+function buildReceipt() {
+  const c = document.createElement('canvas');
+  c.width = 320; c.height = 240;
+  const g = c.getContext('2d');
+  g.imageSmoothingEnabled = false;
+  g.fillStyle = '#f6f1e4'; g.fillRect(0, 0, 320, 240);
+
+  // cabecalho Banco Master: marca em pixel + nome
+  const navy = '#061737', blue = '#1a4686';
+  const M = [[0,0],[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[0,8],[0,9],
+             [1,0],[2,1],[3,2],[4,3],[5,4],[6,3],[7,2],[8,1],[9,0],
+             [9,1],[9,2],[9,3],[9,4],[9,5],[9,6],[9,7],[9,8],[9,9],
+             [1,1],[1,2],[8,1],[8,2]];
+  M.forEach(([x, y]) => { g.fillStyle = blue; g.fillRect(14 + x * 2, 12 + y * 2, 2, 2); });
+  g.fillStyle = navy;
+  g.font = "14px 'Press Start 2P', monospace";
+  g.textAlign = 'left';
+  g.fillText('BANCO', 50, 30);
+  g.fillText('MASTER', 50, 48);
+  g.fillStyle = navy; g.fillRect(12, 62, 296, 2);
+  g.fillStyle = '#c7c6c5'; g.fillRect(12, 66, 296, 1);
+
+  const T = (s, x, y, size, col, align = 'left') => {
+    g.font = size + "px 'Press Start 2P', monospace";
+    g.textAlign = align;
+    g.fillStyle = col;
+    g.fillText(s, x, y);
+  };
+  const R = LANG[lang].receipt;
+  T(R.title1, 14, 92, 10, '#1a1a1a');
+  T(R.title2, 14, 108, 10, '#1a1a1a');
+  g.drawImage(avatar === 'vorcaro' ? PLAYER_VORCARO[0] : avatar === 'cavalo' ? CAVALO : PLAYER_FLAVIO[0],
+              avatar === 'cavalo' ? 236 : 250, 76, avatar === 'cavalo' ? 66 : 48, 64);
+
+  const secs = Math.floor(framesPlayed / 60);
+  const mm = String(Math.floor(secs / 60)).padStart(2, '0');
+  const ss = String(secs % 60).padStart(2, '0');
+  T(R.fugitive + AVATAR_NAME[avatar], 14, 136, 8, '#3a3a3a');
+  T(R.destination, 14, 154, 8, '#3a3a3a');
+  T(R.time + mm + ':' + ss, 14, 172, 8, '#3a3a3a');
+  T(R.money, 14, 196, 8, '#3a3a3a');
+  T('US$ ' + money + ' MI', 14, 220, 14, '#1b7f3a');
+
+  g.save(); g.translate(238, 196); g.rotate(-0.16);
+  g.strokeStyle = '#c8323c'; g.lineWidth = 3; g.strokeRect(-56, -19, 112, 38);
+  T(R.stamp, 0, 7, 13, '#c8323c', 'center');
+  g.restore();
+  T('corre, flavio', 14, 234, 6, '#8a8578');
+  return c.toDataURL('image/png');
+}
+
+function showReceipt() {
+  if (receiptShown) return;
+  receiptShown = true;
+  const a = document.getElementById('recibo');
+  if (!a) return;
+  try { a.href = buildReceipt(); } catch (e) { return; }
+  a.style.display = 'block';
 }
 
 function draw() {
@@ -498,14 +1143,19 @@ function draw() {
   drawHUD();
   const blink = (frame >> 5) % 2 ? '#fff' : '#ffd23f';
   const t = LANG[lang];
-
   if (state === 'title') panel([
     [t.title1, '#ffd23f'], [t.title2, '#fff'], [t.title3, '#fff'],
-    [t.controls, '#9fd6ff'], [t.musicTip, '#9fd6ff'], [t.startTip, blink]]);
+    [t.controls, '#9fd6ff'],
+    [t.jump + (t.action[avatar] ? '   ↓/S ' + t.action[avatar] : ''), '#9fd6ff'],
+    [unlocked ? t.avatar + AVATAR_NAME[avatar] + '  ← →' : t.avatarLocked, '#ffd23f'],
+    [t.startTip, blink]]);
   if (state === 'over') panel([
     [t.caught, '#e63946'], ['', ''], [t.gathered + milhoes(money), '#7fd27f'], ['', ''], [t.retry, blink]]);
+  if (state === 'win' && plane.t > 120) showReceipt();
   if (state === 'win' && plane.t > 120) panel([
-    [t.congrats, '#f7a1c4'], [lang === 'en' ? t.coward : t.cowardPt, '#ffd23f'], [t.vorcaro, '#fff'], [milhoes(money), '#7fd27f'], [t.lives + lives, '#fff'], [t.playAgain, blink]]);
+    [t.congrats, '#f7a1c4'], [t.coward, '#ffd23f'], [t.vorcaro, '#fff'],
+    [milhoes(money), '#7fd27f'], [t.avatarsUnlocked, '#ffd23f'],
+    [t.switchTip, '#9fd6ff'], [t.playAgain, blink]]);
 }
 
 // ---------- loop ----------
