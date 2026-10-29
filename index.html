@@ -13,6 +13,10 @@
   #touch div{display:flex;gap:12px}
   #touch button{pointer-events:auto;width:64px;height:64px;border-radius:12px;border:3px solid #fff8;background:#0006;color:#fff;font:16px 'Press Start 2P',monospace}
   @media (pointer:coarse){#touch{display:flex}}
+  #lang-btn{position:fixed;top:12px;right:12px;z-index:10;background:#0006;color:#fff;
+    border:2px solid #fff8;border-radius:8px;padding:6px 10px;font:10px 'Press Start 2P',monospace;
+    cursor:pointer;pointer-events:auto}
+  #lang-btn:hover{background:#000a}
   #recibo{position:fixed;left:50%;bottom:15%;transform:translateX(-50%);display:none;z-index:9;
     padding:16px 22px;border:4px solid #ffd23f;border-radius:10px;background:#000e;color:#ffd23f;
     font:14px 'Press Start 2P',monospace;letter-spacing:1px;text-decoration:none;cursor:pointer;
@@ -25,6 +29,7 @@
 </style>
 </head>
 <body>
+<button id="lang-btn" title="PT/EN">EN</button>
 <div id="wrap"><canvas id="c" width="384" height="216"></canvas></div>
 <a id="recibo" download="comprovante-de-fuga.png">BAIXAR COMPROVANTE</a>
 <div id="touch">
@@ -32,6 +37,85 @@
   <div><button data-k="down">▼</button><button data-k="jump">▲</button></div>
 </div>
 <script>
+// ---------- language support ----------
+let lang = 'pt';
+const LANG = {
+  pt: {
+    title1: 'CORRE, FLÁVIO!',
+    title2: 'Perdeu a eleição...',
+    title3: 'Fuja até Miami!',
+    controls: '← → ou A D  mover',
+    jump: '↑/W pula',
+    action: { flavio: 'corta', cavalo: 'coice', eduardo: 'banana' },
+    avatar: 'avatar: ',
+    avatarLocked: 'termine 1 vez e libere avatares',
+    startTip: 'ESPAÇO p/ começar',
+    caught: 'PEGO PELA PF!',
+    gathered: 'Juntou ',
+    retry: 'ESPAÇO p/ tentar de novo',
+    congrats: 'PARABÉNS!',
+    coward: 'VOCÊ É UM COVARDE!',
+    vorcaro: 'Dinheiro do Vorcaro:',
+    avatarsUnlocked: 'AVATARES LIBERADOS!',
+    switchTip: '← → troca no menu',
+    playAgain: 'ESPAÇO p/ ir ao menu',
+    milhao: ' milhão',
+    milhoes: ' milhões',
+    liquidation: 'LIQUIDAÇÃO!',
+    powers: { cavalo: 'FERRADURA', eduardo: 'BANANA', flavio: 'TESOURA' },
+    download: 'BAIXAR COMPROVANTE',
+    receipt: {
+      title1: 'COMPROVANTE', title2: 'DE FUGA',
+      fugitive: 'FUGITIVO: ', destination: 'DESTINO: MIAMI',
+      time: 'TEMPO: ', money: 'DINHEIRO:', stamp: 'RECEBIDO'
+    }
+  },
+  en: {
+    title1: 'RUN, FLÁVIO!',
+    title2: 'Lost the election...',
+    title3: 'Escape to Miami!',
+    controls: '← → or A D  move',
+    jump: '↑/W jump',
+    action: { flavio: 'cut', cavalo: 'kick', eduardo: 'drop' },
+    avatar: 'avatar: ',
+    avatarLocked: 'finish once to unlock avatars',
+    startTip: 'SPACE to start',
+    caught: 'CAUGHT BY THE FEDS!',
+    gathered: 'Gathered ',
+    retry: 'SPACE to try again',
+    congrats: 'CONGRATS!',
+    coward: 'YOU ARE A COWARD!',
+    vorcaro: "Vorcaro's money:",
+    avatarsUnlocked: 'AVATARS UNLOCKED!',
+    switchTip: '← → to switch in the menu',
+    playAgain: 'SPACE to go to the menu',
+    milhao: ' million',
+    milhoes: ' million',
+    liquidation: 'LIQUIDATION!',
+    powers: { cavalo: 'HORSESHOE', eduardo: 'BANANA', flavio: 'SCISSORS' },
+    download: 'DOWNLOAD RECEIPT',
+    receipt: {
+      title1: 'ESCAPE', title2: 'RECEIPT',
+      fugitive: 'FUGITIVE: ', destination: 'DESTINATION: MIAMI',
+      time: 'TIME: ', money: 'MONEY:', stamp: 'RECEIVED'
+    }
+  }
+};
+
+function applyLang() {
+  document.documentElement.lang = lang === 'pt' ? 'pt-BR' : 'en';
+  const btn = document.getElementById('lang-btn');
+  if (btn) btn.textContent = lang === 'pt' ? 'EN' : 'PT';
+  const link = document.getElementById('recibo');
+  if (link) link.textContent = LANG[lang].download;
+}
+
+document.getElementById('lang-btn').addEventListener('click', () => {
+  lang = lang === 'pt' ? 'en' : 'pt';
+  applyLang();
+});
+applyLang();
+
 const W = 384, H = 216, LEVEL = 4000, GROUND = 184;
 const cv = document.getElementById('c'), ctx = cv.getContext('2d');
 ctx.imageSmoothingEnabled = false;
@@ -259,7 +343,6 @@ const CAVALO = CAVALO_FRAMES[0];
 const PJUMP_CAVALO = CAVALO_FRAMES[1];
 const CAVALO_KICK_SPR = sprite(CAVALO_COICE, HPAL);
 const AVATARS = ['flavio', 'vorcaro', 'cavalo', 'eduardo'];
-const ACTION = { flavio: 'corta', cavalo: 'coice', eduardo: 'banana' };
 const HITBOX = { flavio: { w: 10, h: 16 }, vorcaro: { w: 10, h: 16 }, cavalo: { w: 16, h: 24 }, eduardo: { w: 10, h: 16 } };
 const AVATAR_NAME = { flavio: 'FLÁVIO', vorcaro: 'VORCARO', cavalo: 'BLACK HORSE', eduardo: 'EDUARDO BANANINHA' };
 let avatar = 'flavio', unlocked = false;
@@ -413,7 +496,10 @@ let p, enemies, papers, coins, items, bullets, lives, money, state, camX, frame,
 let framesPlayed = 0, receiptShown = false;
 let farts = [], nextFart = 0;
 let peels = [];
-const milhoes = m => 'US$ ' + m + (m === 1 ? ' milhão' : ' milhões');
+const milhoes = m => {
+  const t = LANG[lang];
+  return 'US$ ' + m + (m === 1 ? t.milhao : t.milhoes);
+};
 
 function reset() {
   const hb = HITBOX[avatar] || HITBOX.flavio;
@@ -962,12 +1048,13 @@ function drawItem(it, y) {
 }
 
 function drawHUD() {
+  const t = LANG[lang];
   for (let i = 0; i < 5; i++) {
     const c = i < lives ? '#e63946' : '#0006', x = 8 + i * 12;
     rect(x, 9, 3, 2, c); rect(x + 4, 9, 3, 2, c); rect(x - 1, 10, 9, 3, c); rect(x, 13, 7, 2, c); rect(x + 2, 15, 3, 2, c);
   }
-  if (p.power) text(({ cavalo: 'FERRADURA', eduardo: 'BANANA' })[avatar] || 'TESOURA', 8, 26, '#ffd23f', 'left');
-  if (p.liq > 0) text('LIQUIDAÇÃO!', W / 2, 34, '#ff6b6b');
+  if (p.power) text(t.powers[avatar] || t.powers.flavio, 8, 26, '#ffd23f', 'left');
+  if (p.liq > 0) text(t.liquidation, W / 2, 34, '#ff6b6b');
   text('US$ ' + money + ' MI', W - 8, 16, '#7fd27f', 'right');
   // progress bar
   const bx = 72, bw = W - 200, prog = Math.min(1, p.x / PLANE_X);   // leaves room on the right for MIA + money
@@ -1018,23 +1105,24 @@ function buildReceipt() {
     g.fillStyle = col;
     g.fillText(s, x, y);
   };
-  T('COMPROVANTE', 14, 92, 10, '#1a1a1a');
-  T('DE FUGA', 14, 108, 10, '#1a1a1a');
+  const R = LANG[lang].receipt;
+  T(R.title1, 14, 92, 10, '#1a1a1a');
+  T(R.title2, 14, 108, 10, '#1a1a1a');
   g.drawImage(avatar === 'vorcaro' ? PLAYER_VORCARO[0] : avatar === 'cavalo' ? CAVALO : PLAYER_FLAVIO[0],
               avatar === 'cavalo' ? 236 : 250, 76, avatar === 'cavalo' ? 66 : 48, 64);
 
   const secs = Math.floor(framesPlayed / 60);
   const mm = String(Math.floor(secs / 60)).padStart(2, '0');
   const ss = String(secs % 60).padStart(2, '0');
-  T('FUGITIVO: ' + AVATAR_NAME[avatar], 14, 136, 8, '#3a3a3a');
-  T('DESTINO: MIAMI', 14, 154, 8, '#3a3a3a');
-  T('TEMPO: ' + mm + ':' + ss, 14, 172, 8, '#3a3a3a');
-  T('DINHEIRO:', 14, 196, 8, '#3a3a3a');
+  T(R.fugitive + AVATAR_NAME[avatar], 14, 136, 8, '#3a3a3a');
+  T(R.destination, 14, 154, 8, '#3a3a3a');
+  T(R.time + mm + ':' + ss, 14, 172, 8, '#3a3a3a');
+  T(R.money, 14, 196, 8, '#3a3a3a');
   T('US$ ' + money + ' MI', 14, 220, 14, '#1b7f3a');
 
   g.save(); g.translate(238, 196); g.rotate(-0.16);
   g.strokeStyle = '#c8323c'; g.lineWidth = 3; g.strokeRect(-56, -19, 112, 38);
-  T('RECEBIDO', 0, 7, 13, '#c8323c', 'center');
+  T(R.stamp, 0, 7, 13, '#c8323c', 'center');
   g.restore();
   T('corre, flavio', 14, 234, 6, '#8a8578');
   return c.toDataURL('image/png');
@@ -1054,19 +1142,20 @@ function draw() {
   drawWorld();
   drawHUD();
   const blink = (frame >> 5) % 2 ? '#fff' : '#ffd23f';
+  const t = LANG[lang];
   if (state === 'title') panel([
-    ['CORRE, FLÁVIO!', '#ffd23f'], ['Perdeu a eleição...', '#fff'], ['Fuja até Miami!', '#fff'],
-    ['← → ou A D  mover', '#9fd6ff'],
-    ['↑/W pula' + (ACTION[avatar] ? '   ↓/S ' + ACTION[avatar] : ''), '#9fd6ff'],
-    [unlocked ? 'avatar: ' + AVATAR_NAME[avatar] + '  ← →' : 'termine 1 vez e libere avatares', '#ffd23f'],
-    ['ESPAÇO p/ começar', blink]]);
+    [t.title1, '#ffd23f'], [t.title2, '#fff'], [t.title3, '#fff'],
+    [t.controls, '#9fd6ff'],
+    [t.jump + (t.action[avatar] ? '   ↓/S ' + t.action[avatar] : ''), '#9fd6ff'],
+    [unlocked ? t.avatar + AVATAR_NAME[avatar] + '  ← →' : t.avatarLocked, '#ffd23f'],
+    [t.startTip, blink]]);
   if (state === 'over') panel([
-    ['PEGO PELA PF!', '#e63946'], ['', ''], ['Juntou ' + milhoes(money), '#7fd27f'], ['', ''], ['ESPAÇO p/ tentar de novo', blink]]);
+    [t.caught, '#e63946'], ['', ''], [t.gathered + milhoes(money), '#7fd27f'], ['', ''], [t.retry, blink]]);
   if (state === 'win' && plane.t > 120) showReceipt();
   if (state === 'win' && plane.t > 120) panel([
-    ['PARABÉNS!', '#f7a1c4'], ['VOCÊ É UM COVARDE!', '#ffd23f'], ['Dinheiro do Vorcaro:', '#fff'],
-    [milhoes(money), '#7fd27f'], ['AVATARES LIBERADOS!', '#ffd23f'],
-    ['← → troca no menu', '#9fd6ff'], ['ESPAÇO p/ ir ao menu', blink]]);
+    [t.congrats, '#f7a1c4'], [t.coward, '#ffd23f'], [t.vorcaro, '#fff'],
+    [milhoes(money), '#7fd27f'], [t.avatarsUnlocked, '#ffd23f'],
+    [t.switchTip, '#9fd6ff'], [t.playAgain, blink]]);
 }
 
 // ---------- loop ----------
